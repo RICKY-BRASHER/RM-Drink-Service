@@ -132,7 +132,7 @@
         <a href="#" class="btn btn-premium-danger-action w-100 py-3 fw-bold rounded-4 shadow-sm" id="btnProfileLogout">
             <i class="bi bi-box-arrow-right me-2"></i> Fermer ma Session (Déconnexion)
         </a>
-        <form id="logout-form-profile" action="{{ route('logout') }}" method="POST" class="d-none">@csrf</form>
+        <form id="logout-form-profile" action="{{ route('deconnect') }}" method="POST" class="d-none">@csrf</form>
     </div>
 
 </div>

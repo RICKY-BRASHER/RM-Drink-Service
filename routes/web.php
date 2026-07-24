@@ -81,7 +81,7 @@ Route::middleware(['is_client'])->group(function () {
     Route::delete('/Distrib237/client/supprimer-produit/{id}', [ClientShow::class, 'supprimerDuPanier'])->name('client.supprimer.produit');
     Route::post('/Distrib237/client/finaliser-panier', [ClientShow::class, 'finaliserPanierEnvoyer'])->name('client.finaliser.produit');
     Route::get('/Distrib237/client/recuperer-details-bon/{id}', [ClientShow::class, 'recupererDetailsBon']);
-
+    Route::post('/Distrib237/client/modifier-avatar', [ClientShow::class, 'modifierAvatarClient']);
 
 });
 
@@ -101,7 +101,7 @@ Route::post('/Distrib237/notification/marquer-lue/{id}', function($id) {
     \Illuminate\Support\Facades\DB::table('notifications_systeme')->where('id_notif', $id)->update(['statut_lecture' => 'lu']);
     return response()->json(['success' => true]);
 });
-Route::post('/Distrib237/client/modifier-avatar', [ClientShow::class, 'modifierAvatarClient']);
-Route::get('logout', [Authentification::class, 'logout'])->name('logout');
+
+Route::get('deconnect', [Authentification::class, 'logout'])->name('deconnect');
 
 require __DIR__.'/settings.php';
