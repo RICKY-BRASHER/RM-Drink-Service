@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 use App\Models\User;
-use App\Models\produit;
+use App\Models\Produit;
 use App\Models\Vente;
 use App\Models\Depot;
-use App\Models\fournisseur;
+use App\Models\Fournisseur;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;

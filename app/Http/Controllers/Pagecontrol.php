@@ -21,14 +21,6 @@ class Pagecontrol extends Controller
     {
         return view('auth.personnel.loginpro');
     }
-    public function showhomeclient()
-    {
-        return view('layout.client.home');
-    }
-    public function showSettingClient()
-    {
-        return view('layout.client.setting');
-    }
     public function showaccueiladmin()
     {
        // 1. SÉCURITÉ ACCÈS : Réservé strictement à la Direction Générale

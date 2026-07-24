@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\depot;
-use App\Models\produit;
+use App\Models\Depot;
+use App\Models\Produit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Session;
@@ -297,10 +297,10 @@ class ActionAdd extends Controller
             ], 422);
         }
         if(empty($id_p)){
-            $produit = new produit();
+            $produit = new Produit();
             $message = "Le produit " . $request->input('nom_p') . " a été ajouté avec succès.";
         }else{
-            $produit = produit::find($id_p);
+            $produit = Produit::find($id_p);
             if (!$produit) {
                 return response()->json(['success' => false, 'message' => 'Produit introuvable.'], 404);
             }

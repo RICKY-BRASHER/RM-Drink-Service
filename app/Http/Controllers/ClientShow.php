@@ -75,7 +75,7 @@ class ClientShow extends Controller
          $client = auth()->user();
 
     // Extraction de tout l'historique financier depuis la table recharges
-    $mouvements = \Illuminate\Support\Facades\DB::table('recharges')
+    $mouvements = DB::table('recharges')
         ->where('client_id', $client->id_u)
         ->orderBy('created_at', 'desc')
         ->get();

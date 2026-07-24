@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use App\Models\produit;
+use App\Models\Produit;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\Depot;
@@ -777,7 +777,7 @@ public function traiterCommandeEnAttente(Request $request, $id_facture)
 
                 // Insertion de la ligne historique de recharge
                 DB::table('recharges')->insert([
-                    'reference_tx'   => 'POS-' . date('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(4)),
+                    'reference_tx'   => 'POS-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
                     'type_mouvement' => $typeMouvement, 
                     'client_id'      => $client->id_u,
                     'vente_id'       => $vente->id,
