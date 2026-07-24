@@ -9,7 +9,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\View; // 💡 Import indispensable
 use Illuminate\Support\Facades\Auth; // 💡 Import indispensable
-
+use Illuminate\Support\Facades\URL;
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -25,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (app()->environment('production')) {
+            URL::forceScheme('https');
+        }
         // 🚀 INJECTEUR CENTRALISÉ DOUBLE-FLUX POUR TOUTES LES PAGES BLADE
         View::composer('*', function ($view) {
             
