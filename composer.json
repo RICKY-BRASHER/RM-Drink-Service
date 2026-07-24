@@ -75,9 +75,12 @@
             "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [
+            "@php artisan route:clear",
+            "@php artisan config:clear",
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
             "@php artisan migrate --force"
         ],
+
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],

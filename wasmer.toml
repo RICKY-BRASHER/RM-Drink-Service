@@ -1,19 +1,13 @@
-[package]
-name = "ricky/rm-drink-service"
-version = "1.0.0"
-description = "ERP Distrib237 - Gestion Logistique et Caisse sur Wasmer"
-bindings = { php = "php/php" }
+[dependencies]
+"php/php" = "=8.3.4"
 
-[[modules]]
-name = "php"
-source = "wasmer/php@8.2" # Utilise le runtime PHP officiel de Wasmer
+[fs]
+"/app/" = "."
 
-[[commands]]
-name = "serve"
-module = "php"
-runner = "https://webc.org"
+[[command]]
+name = "run"
+module = "php/php:php"
+runner = "wasi"
 
-[commands.annotations.wasi]
-atom = "php"
-args = ["-S", "0.0.0.0:$PORT", "-t", "public/"]
-env = ["APP_ENV=production", "APP_DEBUG=false", "SESSION_DRIVER=cookie"]
+[command.annotations.wasi]
+main-args = ["-t", "/app/public", "/app/public/index.php", "-S", "localhost:8080"]
