@@ -1,0 +1,546 @@
+/* Pour Chrome, Safari, Edge et les simulateurs basés dessus */
+::-webkit-scrollbar {
+    display: none;
+}
+
+/* Pour Firefox */
+html {
+    scrollbar-width: none;
+}
+/* 🌌 CHARTE GRAPHIC PREMIUM CYBER BLUE */
+body {
+background-color: #000000; /* Noir pur */
+color: #ffffff;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+padding-bottom: 95px; /* Espace de sécurité pour la barre du bas */
+overflow-x: hidden;
+}
+
+/* 🔼 HEADER DU HAUT STYLE BLEU CYBER */
+.maxit-header {
+background-color: #000000;
+padding: 14px 16px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+border-bottom: 1px solid #161719;
+}
+.maxit-logo {
+font-size: 1.3rem;
+font-weight: 800;
+color: #0052ff; 
+display: flex;
+align-items: center;
+gap: 6px;
+}
+.header-icons {
+display: flex;
+align-items: center;
+gap: 20px;
+}
+.icon-btn {
+font-size: 1.15rem;
+color: #ffffff;
+cursor: pointer;
+position: relative;
+display: flex;
+align-items: center;
+}
+.icon-badge {
+position: absolute;
+top: -6px;
+right: -8px;
+background-color: #0052ff; 
+color: #ffffff;
+font-size: 0.6rem;
+font-weight: bold;
+padding: 1px 4px;
+border-radius: 50%;
+}
+
+/* 🔽 NAVBAR BASSE FIXE (STRICTEMENT ANCRÉE AU BAS DE L'ÉCRAN MOBILE) */
+.maxit-bottom-bar {
+position: fixed;
+bottom: 0;
+left: 0;
+right: 0;
+background-color: #111111; 
+border-top: 1px solid #1f2022;
+z-index: 2000;
+padding: 10px 0;
+box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.6);
+}
+.maxit-nav-item {
+display: flex;
+flex-direction: column;
+align-items: center;
+font-size: 0.72rem;
+color: #71767b; 
+text-decoration: none;
+font-weight: 500;
+transition: all 0.2s ease;
+}
+.maxit-nav-item i {
+font-size: 1.3rem;
+margin-bottom: 2px;
+opacity: 0.5;
+transition: all 0.2s ease;
+}
+/* Style Actif sur l'onglet sélectionné */
+.maxit-nav-item.active {
+color: #0052ff !important; 
+font-weight: bold;
+}
+.maxit-nav-item.active i {
+opacity: 1;
+transform: scale(1.1);
+color: #0052ff !important;
+}
+/* 💳 LA CARTE FINTECH PRESTIGE BLUE LUMINEUSE */
+.fintech-card {
+background-color: #0052ff;
+background-image: 
+/* Bande oblique claire du bas */
+linear-gradient(35deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%),
+/* Bande verticale bleu saphir à droite */
+linear-gradient(90deg, transparent 60%, rgba(0, 188, 255, 0.3) 60%, rgba(0, 188, 255, 0.3) 75%, transparent 75%),
+/* Dégradé de fond indigo pour l'effet de profondeur */
+linear-gradient(135deg, #0d41cc 0%, #0052ff 100%);
+border-radius: 20px;
+padding: 24px;
+position: relative;
+overflow: hidden;
+border: 1px solid rgba(255, 255, 255, 0.1);
+box-shadow: 0 15px 35px rgba(0, 82, 255, 0.25);
+min-height: 200px;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+}
+
+/* Effet de reflet de lumière sur le plastique de la carte */
+.fintech-card::after {
+content: "";
+position: absolute;
+inset: 0;
+background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
+pointer-events: none;
+z-index: 2;
+}
+
+/* Style des petits labels de la carte (Titulaire, Solde...) */
+.card-label-small {
+font-size: 0.68rem;
+text-transform: uppercase;
+letter-spacing: 0.8px;
+color: rgba(255, 255, 255, 0.6);
+font-weight: 600;
+display: block;
+}
+
+/* Style de l'icône de l'œil interactif */
+.eye-toggle-btn {
+cursor: pointer;
+font-size: 1.25rem;
+transition: opacity 0.2s;
+user-select: none;
+color: rgba(255, 255, 255, 0.85);
+display: flex;
+align-items: center;
+}
+.eye-toggle-btn:active {
+opacity: 0.5;
+}
+/* ==================================================================== */
+/* 🛒 DESIGN DES COMPOSANTS DE LA BOUTIQUE CYBER BLUE MOBILE-FIRST     */
+/* ==================================================================== */
+
+.product-card-cyber {
+    background-color: #111111;
+    border: 1px solid rgba(0, 82, 255, 0.15);
+    border-radius: 16px;
+    padding: 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.product-card-cyber:active {
+    transform: scale(0.97);
+    border-color: #0052ff;
+}
+
+.format-badge-cyber {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background-color: rgba(0, 82, 255, 0.1);
+    color: #00bcff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 188, 255, 0.2);
+}
+
+.product-icon-cyber {
+    color: #0052ff; 
+    font-size: 1.5rem; 
+    margin-bottom: 6px;
+}
+
+.product-title-cyber {
+    font-weight: bold; 
+    color: #ffffff; 
+    text-transform: uppercase; 
+    margin: 0; 
+    font-family: monospace; 
+    font-size: 0.8rem; 
+    line-height: 1.2; 
+    margin-bottom: 4px;
+}
+
+.btn-circle-add {
+    width: 32px;
+    height: 32px;
+    background-color: #0052ff;
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.btn-circle-add:active {
+    background-color: #0041cc;
+}
+
+.floating-cart-trigger {
+    position: fixed;
+    bottom: 85px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    background-color: #0052ff;
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 25px rgba(0, 82, 255, 0.4);
+    z-index: 1000;
+}
+
+.dark-modal-content {
+    background-color: #111111;
+    border: 1px solid #1f2022;
+    border-radius: 20px;
+    color: #ffffff;
+}
+
+.dark-modal-header {
+    border-bottom: 1px solid #1f2022;
+}
+.supplier-scroll-wrapper {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto; /* Déclenche le glissement tactile horizontal */
+    padding: 4px 2px 10px 2px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* Défilement fluide sur iPhone */
+}
+
+/* Masquage de la barre de défilement pour garder l'aspect épuré d'une appli native */
+.supplier-scroll-wrapper::-webkit-scrollbar {
+    display: none;
+}
+
+/* LE JETON (CHIP) DE FOURNISSEUR UNIQUE */
+.supplier-chip {
+    flex: 0 0 auto; /* Empêche les boutons de se tasser ou de rétrécir */
+    background-color: #111111;
+    color: #9ea3a9;
+    border: 1px solid #1f2022;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.supplier-chip span {
+    font-size: 1rem;
+}
+
+/* L'ONGLET SÉLECTIONNÉ PASSE EN BLEU ÉLECTRIQUE AVEC SOURCIL LUMINEUX */
+.supplier-chip.active {
+    background-color: #0052ff;
+    color: #ffffff;
+    border-color: #0052ff;
+    box-shadow: 0 4px 15px rgba(0, 82, 255, 0.3);
+}
+
+.supplier-chip:active {
+    transform: scale(0.95);
+}
+.remove-local-item-btn {
+    background: transparent;
+    border: none;
+    transition: transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.remove-local-item-btn:active {
+    transform: scale(0.85); /* Effet d'enfoncement tactile */
+}
+
+/* ==================================================================== */
+/* 📦 CARTES DE SUIVI DE COMMANDE CLASSIQUES ET ÉPURÉES                  */
+/* ==================================================================== */
+
+.order-status-card {
+    background-color: #111111;
+    border-radius: 16px;
+    padding: 18px 20px;
+    transition: transform 0.2s;
+}
+
+.order-status-card:active {
+    transform: scale(0.98);
+}
+
+/* Variations fines des bordures de statuts */
+.border-blue-active { border: 1px solid rgba(0, 82, 255, 0.3); }
+.border-green-success { border: 1px solid rgba(21, 128, 61, 0.4); }
+.border-red-danger { border: 1px solid rgba(220, 53, 69, 0.3); }
+
+/* Badges Cyber Propres sans émojis */
+.badge-cyber-blue { background-color: rgba(0, 82, 255, 0.12); color: #00bcff; border: 1px solid rgba(0, 82, 255, 0.2); }
+.badge-cyber-success { background-color: rgba(34, 197, 94, 0.08); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.15); }
+.badge-cyber-danger { background-color: rgba(220, 53, 69, 0.08); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.15); }
+/* ==================================================================== */
+/* 📱 COMPOSANT FINTECH : BOTTOM SHEET TACTILE SLIDE-UP ANIMATION       */
+/* ==================================================================== */
+
+/* Fond flouté noir translucide en arrière-plan */
+.custom-bottom-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 2500;
+    display: none;
+}
+
+/* Le conteneur du volet fixé sous l'écran par défaut */
+.custom-bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #111111; /* Même anthracite que vos cartes */
+    border-top: 1px solid rgba(0, 82, 255, 0.2); /* Fine lueur bleue supérieure */
+    border-radius: 24px 24px 0 0;
+    padding: 10px 16px 30px 16px;
+    z-index: 2600;
+    transform: translateY(100%); /* Masqué complètement sous l'écran */
+    transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.1); /* Animation de rebond moderne */
+}
+
+/* Classe active déclenchée en JQuery pour faire lever le volet */
+.custom-bottom-sheet.show-sheet {
+    transform: translateY(0); /* Remonte à sa position normale */
+}
+
+/* Encoche de design style Apple/iPhone en haut du tiroir */
+.sheet-drag-handle {
+    width: 36px;
+    height: 4px;
+    background-color: #2c2e33;
+    border-radius: 2px;
+    margin: 0 auto 15px auto;
+}
+
+/* GROS BOUTONS CARRÉS DESIGN DE L'IMAGE */
+.btn-sheet-action {
+    background-color: #161719; /* Un peu plus clair pour le contraste */
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 18px 10px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.btn-sheet-action:active {
+    transform: scale(0.95);
+    background-color: #1c1d20;
+}
+.btn-sheet-action i {
+    color: #0052ff !important; /* Vos icônes s'illuminent en bleu électrique */
+}
+/* ==================================================================== */
+/* 📱 LOGIQUE DE VOLET INLINE FLUIDE (ACCORDÉON SOUS LA CARTE)          */
+/* ==================================================================== */
+
+/* Masquage de sécurité initial pour le volet sous le bon */
+.inline-volet-container {
+    display: none;
+    overflow: hidden;
+}
+
+/* LES BOUTONS COMPACTS EN SOU-BLOC */
+.btn-inline-action {
+    background-color: #1a1b1e; /* Teinte un poil plus claire pour détacher le bloc */
+    color: #ffffff;
+    border: 1px solid rgba(0, 82, 255, 0.2); /* Fine bordure lueur bleue */
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-inline-action:active {
+    transform: scale(0.96);
+    background-color: #0052ff; /* S'illumine en bleu vif à l'activation tactile */
+}
+.btn-inline-action i {
+    color: #00bcff; /* Couleur cyan pour l'icône */
+}
+
+/* Petit message d'information épuré pour les statuts verrouillés */
+.alert-inline-msg {
+    font-size: 0.75rem;
+    color: #71767b;
+    text-align: center;
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.05);
+}
+/* ==================================================================== */
+/* 🎛️ BOUTON DE TRI FINTECH MINIATURE                                   */
+/* ==================================================================== */
+.btn-cyber-sort {
+    background-color: #111111;
+    color: #00bcff; /* Teinte cyan lumineuse */
+    border: 1px solid rgba(0, 82, 255, 0.2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-family: monospace;
+    transition: all 0.2s ease;
+    height: fit-content;
+}
+
+.btn-cyber-sort:active {
+    transform: scale(0.92);
+    background-color: #0052ff;
+    color: #ffffff;
+}
+/* ==================================================================== */
+/* 👤 COMPOSANTS PREMIUM ÉCRAN PROFIL ET AVATAR                         */
+/* ==================================================================== */
+
+.profile-header-card {
+    background-color: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+    border-radius: 20px;
+    padding: 20px;
+}
+
+/* LE ROND DE L'AVATAR CONTENANT L'ICÔNE BI-PERSON */
+.profile-avatar-wrapper {
+    position: relative;
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 82, 255, 0.3); /* Lueur fine bleue */
+    background: #161719;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    display: inline-block;
+}
+
+.avatar-display {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00bcff; /* Couleur cyan de l'icône */
+    font-size: 2.5rem;
+}
+
+/* 💡 LE BADGE TACTILE ORANGE ISSU DE L'IMAGE POUR COMPLÉTER LE LUXE */
+.avatar-edit-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 28px;
+    height: 28px;
+    background-color: #ff6600; /* Orange vif de l'image de profil */
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border: 2px solid #111111; /* Détachement propre du fond */
+    transition: transform 0.2s ease;
+    z-index: 15;
+}
+
+.avatar-edit-badge:active {
+    transform: scale(0.85);
+}
+
+/* LE BOUTON DÉCONNEXION PRESTIGE ROUGE */
+.btn-premium-danger-action {
+    background-color: #dc3545;
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.btn-premium-danger-action:active {
+    transform: scale(0.96);
+    background-color: #b02a37;
+}
+/* ==================================================================== */
+/* 🖼️ VISIONNEUSE AVATAR EN PLEIN ÉCRAN (STYLE FACEBOOK MOBILE)         */
+/* ==================================================================== */
+.avatar-lightbox-content {
+    background-color: rgba(0, 0, 0, 0.95) !important; /* Fond noir opaque style cinéma */
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.avatar-fullscreen-img {
+    width: 100%;
+    max-height: 75vh;
+    object-fit: contain; /* Empêche l'image de s'étirer ou de se déformer */
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+
+.btn-close-lightbox {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    padding: 8px;
+    z-index: 50;
+}

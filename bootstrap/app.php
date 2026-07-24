@@ -22,8 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
         $middleware->alias([
-            'isAuth' => \App\Http\Middleware\AuthCheck::class,
-            'guest' => \App\Http\Middleware\AutoCheckup::class,
+            'is_admin' => \App\Http\Middleware::class . '\CheckAdmin',
+            'is_client' => \App\Http\Middleware::class . '\CheckClient',
+            'is_secretariat' => \App\Http\Middleware::class . '\CheckSecretariat',
+            'guest_custom' => \App\Http\Middleware\checklogin::class, 
+            'admin_uniq' => \App\Http\Middleware\AdminUnique::class,            
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

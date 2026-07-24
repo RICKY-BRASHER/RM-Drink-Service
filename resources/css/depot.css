@@ -1,0 +1,351 @@
+/* ==========================================================================
+   CHARTE GRAPHIQUE PROFESSIONNELLE : R~M DRINK MANAGER
+   ========================================================================== */
+
+:root {
+    --sidebar-bg: #111827;       /* Noir/Charbon profond de l'image */
+    --sidebar-active: #ef4444;   /* Rouge vif d'activation */
+    --bg-main: #f1f5f9;          /* Gris-bleu très doux pour faire ressortir les blocs blancs */
+    --border-color: #cbd5e1;     /* Bordure gris moyen ultra-perceptible */
+    --text-dark: #0f172a;
+}
+
+body.erp-body {
+    background-color: var(--bg-main);
+    color: #334155;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* 1. ARCHITECTURE DE LA BARRE LATÉRALE (SIDEBAR) */
+.erp-sidebar {
+    position: fixed;
+    top: 0; bottom: 0; left: 0;
+    width: 240px;
+    background-color: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    z-index: 1060;
+    transition: all 0.3s ease;
+}
+.sidebar-brand {
+    padding: 24px 20px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.sidebar-brand h1 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+.sidebar-brand span {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #449aef;
+    letter-spacing: 2px;
+}
+.sidebar-menu {
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 24px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+.menu-item i {
+    font-size: 1.15rem;
+    margin-right: 14px;
+}
+.menu-item:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.02);
+}
+.menu-item.active {
+    color: #ffffff;
+    background-color: rgba(239, 68, 68, 0.1);
+    border-left-color: var(--sidebar-active);
+}
+.sidebar-footer {
+    margin-top: auto;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.logout-link {
+    color: #94a3b8;
+    font-size: 1.2rem;
+    transition: color 0.2s ease;
+}
+.logout-link:hover {
+    color: #ef4444;
+}
+
+/* 2. ARCHITECTURE DE LA ZONE DE TRAVAIL (BARRE SUPÉRIEURE) */
+.erp-container {
+    margin-left: 240px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+}
+.erp-topbar {
+    height: 70px;
+    background-color: #ffffff;
+    border-bottom: 2px solid var(--border-color); /* Bordure renforcée sous le menu du haut */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 30px;
+}
+.topbar-search {
+    position: relative;
+    width: 320px;
+}
+.topbar-search input {
+    width: 100%;
+    padding: 8px 16px 8px 36px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-color); /* Bordure de recherche plus visible */
+    background-color: #f8fafc;
+    font-size: 0.85rem;
+    outline: none;
+}
+.topbar-search .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+}
+.topbar-icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+.topbar-icon-btn:hover {
+    background-color: #f1f5f9;
+    color: var(--text-dark);
+}
+.topbar-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 3. CONTENEUR CONTENU */
+.erp-main {
+    padding: 30px;
+    flex: 1;
+}
+
+/* 4. DESIGN DES CARTES COMPACTES (DASHBOARD IMAGE STYLE) */
+.kpi-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    /* Ajout d'une ombre douce pour décoller la carte de l'arrière-plan */
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+}
+.kpi-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.kpi-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 8px 0;
+}
+.kpi-footer {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+/* 5. PANNEAUX, COMPOSANTS ET FORMULAIRES */
+.erp-panel {
+    background-color: #ffffff;
+    border: 2px solid var(--border-color); /* Épaisseur de bordure augmentée pour une perception parfaite */
+    border-radius: 14px;
+    /* Ombre d'élévation premium */
+    box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+.panel-header {
+    padding: 16px 20px;
+    background-color: #f8fafc; /* Fond légèrement grisé pour détacher l'en-tête du tableau */
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 700;
+    color: var(--text-dark);
+}
+.form-label-custom {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #475569;
+}
+
+/* S'ADAPTE PARFAITEMENT SUR MOBILE ET MACHINE (RESPONSIVE) */
+@media (max-width: 991px) {
+    .erp-sidebar {
+        transform: translateX(-240px); /* Cache la barre sur mobile par défaut */
+    }
+    .erp-sidebar.open {
+        transform: translateX(0); /* L'ouvre au clic sur le bouton menu mobile */
+    }
+    .erp-container {
+        margin-left: 0;
+    }
+    .topbar-search {
+        width: 180px;
+    }
+}
+
+.circle-progress-wrapper {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(#10b981 0% 71%, #e2e8f0 71% 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.circle-inner-value {
+    width: 96px;
+    height: 96px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: var(--text-dark);
+    font-size: 1.25rem;
+}
+.menu-item .nav-icon {
+    font-size: 1.15rem;
+    margin-right: 14px;
+    display: inline-block;
+}
+.modal-content .form-control, .modal-content .form-select {
+    border: 1.5px solid var(--border-color) !important;
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+.modal-content .form-control:focus, .modal-content .form-select:focus {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12) !important;
+}
+/* Personnalisation fine de la scrollbar pour vos tables de boissons */
+.scrollable-table-container::-webkit-scrollbar {
+    width: 6px; /* Épaisseur fine */
+}
+
+.scrollable-table-container::-webkit-scrollbar-track {
+    background: transparent; /* Fond invisible */
+}
+
+.scrollable-table-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15); /* Couleur grise très discrète */
+    border-radius: 10px;
+}
+
+.scrollable-table-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3); /* Devient plus sombre au survol */
+}
+/* ==================================================================== */
+/* 🛠️ COMPOSANTS DE MODIFICATION DE COMMANDE (PANNEAU SECRÉTAIRE)       */
+/* ==================================================================== */
+
+.edit-order-table th {
+    background-color: #f8fafc !important;
+    color: #64748b !important;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.input-qty-edit {
+    max-width: 90px;
+    font-family: monospace;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* Indicateur visuel ambré si une facture a subi un réajustement logistique */
+.badge-status-modified {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    font-weight: 700;
+}
+.nav-tabs .nav-top-tab.active {
+        color: #0052ff !important;
+        background-color: rgba(0, 82, 255, 0.05) !important;
+        border-color: rgba(0, 82, 255, 0.2) rgba(0, 82, 255, 0.2) #fff !important;
+    }
+    .nav-tabs .nav-top-tab:not(.active):hover {
+        background-color: #f8fafc;
+        border-color: #e2e8f0;
+    }
+/* ==================================================================== */
+/* 👥 AVATARS CIRCULAIRES POUR LE TABLEAU DES CLIENTS                  */
+/* ==================================================================== */
+.table-avatar-wrapper {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: #f1f5f9;
+    border: 2px solid rgba(0, 82, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.table-avatar-wrapper:hover {
+    transform: scale(1.15);
+    border-color: #0052ff;
+}
+
+.table-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.table-avatar-initials {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #ffffff;
+    text-transform: uppercase;
+}

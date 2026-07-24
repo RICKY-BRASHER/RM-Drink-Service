@@ -7,8 +7,12 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/js/app.ts'],
-            ssr: 'resources/js/ssr.ts',
+            input: [
+                'resources/css/app.css', 
+                'resources/js/app.js',
+                'resources/css/home.css',
+                'resources/css/depot.css'
+            ],
             refresh: true,
         }),
         tailwindcss(),
@@ -23,5 +27,9 @@ export default defineConfig({
         wayfinder({
             formVariants: true,
         }),
+        
     ],
+    server: {
+        host: 'localhost', // Force l'utilisation de localhost au lieu de [::]
+    },
 });
