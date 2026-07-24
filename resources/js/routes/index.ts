@@ -991,74 +991,67 @@ stock.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     
     stock.form = stockForm
 /**
-* @see \App\Http\Controllers\Pagecontrol::LandingPage
- * @see app/Http/Controllers/Pagecontrol.php:12
+ * @see routes/web.php:106
  * @route '/'
  */
-export const LandingPage = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: LandingPage.url(options),
+export const home = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: home.url(options),
     method: 'get',
 })
 
-LandingPage.definition = {
+home.definition = {
     methods: ["get","head"],
     url: '/',
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see \App\Http\Controllers\Pagecontrol::LandingPage
- * @see app/Http/Controllers/Pagecontrol.php:12
+ * @see routes/web.php:106
  * @route '/'
  */
-LandingPage.url = (options?: RouteQueryOptions) => {
-    return LandingPage.definition.url + queryParams(options)
+home.url = (options?: RouteQueryOptions) => {
+    return home.definition.url + queryParams(options)
 }
 
 /**
-* @see \App\Http\Controllers\Pagecontrol::LandingPage
- * @see app/Http/Controllers/Pagecontrol.php:12
+ * @see routes/web.php:106
  * @route '/'
  */
-LandingPage.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: LandingPage.url(options),
+home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: home.url(options),
     method: 'get',
 })
 /**
-* @see \App\Http\Controllers\Pagecontrol::LandingPage
- * @see app/Http/Controllers/Pagecontrol.php:12
+ * @see routes/web.php:106
  * @route '/'
  */
-LandingPage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
-    url: LandingPage.url(options),
+home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: home.url(options),
     method: 'head',
 })
 
     /**
-* @see \App\Http\Controllers\Pagecontrol::LandingPage
- * @see app/Http/Controllers/Pagecontrol.php:12
+ * @see routes/web.php:106
  * @route '/'
  */
-    const LandingPageForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-        action: LandingPage.url(options),
+    const homeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+        action: home.url(options),
         method: 'get',
     })
 
             /**
-* @see \App\Http\Controllers\Pagecontrol::LandingPage
- * @see app/Http/Controllers/Pagecontrol.php:12
+ * @see routes/web.php:106
  * @route '/'
  */
-        LandingPageForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-            action: LandingPage.url(options),
+        homeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: home.url(options),
             method: 'get',
         })
             /**
-* @see \App\Http\Controllers\Pagecontrol::LandingPage
- * @see app/Http/Controllers/Pagecontrol.php:12
+ * @see routes/web.php:106
  * @route '/'
  */
-        LandingPageForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-            action: LandingPage.url({
+        homeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: home.url({
                         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
                             _method: 'HEAD',
                             ...(options?.query ?? options?.mergeQuery ?? {}),
@@ -1067,7 +1060,7 @@ LandingPage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
             method: 'get',
         })
     
-    LandingPage.form = LandingPageForm
+    home.form = homeForm
 /**
 * @see \App\Http\Controllers\Authentification::deconnect
  * @see app/Http/Controllers/Authentification.php:218
