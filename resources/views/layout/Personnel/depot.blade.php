@@ -91,7 +91,7 @@
                 <strong class="text-white d-block small">{{ auth()->user()->nom_u ?? 'Takougang D.' }}</strong>
                 <span class="text-primary text-uppercase font-monospace" style="font-size: 0.65rem;">{{ auth()->user()->role_u ?? 'Admin' }}</span>
             </div>
-            <a href="{{ route('logout') }}" class="logout-link" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+            <a href="{{ route('deconnect') }}" class="logout-link" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                 <i class="bi bi-power"></i>
             </a>
             <form id="logout-form" action="{{ route('deconnect') }}" method="POST" class="d-none">@csrf</form>
@@ -161,7 +161,7 @@
 
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-10 px-3 py-2 rounded-pill fw-bold small d-none d-sm-inline-block">
-                    🏢 Dépôt : {{ session('depot_actif_nom', 'Logpom') }}
+                    🏢 Dépôt : {{ auth()->user()->depot_id ?? 'Super_Admin' }}
                 </span>
                 
                 {{-- ==================================================================== --}}

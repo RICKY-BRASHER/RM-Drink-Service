@@ -1,4 +1,4 @@
-@extends('layout.personnel.depot')
+@extends('layout.Personnel.depot')
 
 @section('content')
 <div class="container-fluid p-0">

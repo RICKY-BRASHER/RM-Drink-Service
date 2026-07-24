@@ -131,7 +131,7 @@ class PagePersonnel extends Controller
             ->take(5)
             ->get();
 
-        return view('layout.personnel.dashboard', compact(
+        return view('layout.Personnel.dashboard', compact(
             'caJournalier', 'nbDettesJour', 'nbCommandesWeb', 'volumeVenduesJour',
             'totalStockPhysique', 'totalApprovisionneJour', 'nbRuptures', 'totalReferences',
             'topVentes', 'caMensuel', 'clientsFideles'
@@ -147,7 +147,7 @@ class PagePersonnel extends Controller
         }
 
         $clients = $query->orderBy('nom_u', 'asc')->get();
-        return view('layout.personnel.client', compact('clients'));
+        return view('layout.Personnel.client', compact('clients'));
 
     }
     public function showpagehistorique()
@@ -208,7 +208,7 @@ class PagePersonnel extends Controller
                 ->get();
         }
 
-        return view('layout.personnel.historique', compact('approvisionnements', 'ventes', 'depots'));
+        return view('layout.Personnel.historique', compact('approvisionnements', 'ventes', 'depots'));
     }
     public function showpageproduit() {
         // 1. Récupération des fournisseurs pour votre liste déroulante du formulaire
@@ -227,7 +227,7 @@ class PagePersonnel extends Controller
                 return strtoupper($produit->fournisseur?->nom_fournisseur ?? 'AUTRES');
             });
 
-        return view('layout.personnel.produit', compact('fournisseurs', 'produitsParFournisseur'));
+        return view('layout.Personnel.produit', compact('fournisseurs', 'produitsParFournisseur'));
     }
 
     public function showpagestock()
@@ -258,7 +258,7 @@ class PagePersonnel extends Controller
 
         $fournisseurs = Fournisseur::orderBy('nom_fournisseur', 'asc')->get();
         
-        return view('layout.personnel.stock', compact('fournisseurs', 'ProduitsParDepot'));
+        return view('layout.Personnel.stock', compact('fournisseurs', 'ProduitsParDepot'));
     }
     public function showpageventes()
     {
@@ -293,7 +293,7 @@ class PagePersonnel extends Controller
             ->orderBy('nom_p', 'asc')
             ->get();
 
-        return view('layout.personnel.vente', compact('clients', 'produitsDuDepot', 'venteEnCours'));
+        return view('layout.Personnel.vente', compact('clients', 'produitsDuDepot', 'venteEnCours'));
     }
 
 

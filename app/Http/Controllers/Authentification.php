@@ -25,7 +25,7 @@ class Authentification extends Controller
             // CAS B : L'utilisateur a saisi 12 chiffres (ex: 237690408038)
             // On vérifie s'il commence par 237 et que le 4ème chiffre est bien un 6
             elseif (strlen($tel) === 12 && is_numeric($tel) && str_starts_with($tel, '237') && $tel[3] === '6') {
-                $tel =  $tel; // Normalisation internationale
+                // Normalisation internationale
             } 
             // CAS TRICHE / ERREUR : Le format ne respecte rien du tout
             else {

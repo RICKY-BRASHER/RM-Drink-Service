@@ -162,7 +162,7 @@ class Pagecontrol extends Controller
         $totalMobile   = $recharges->whereIn('moyen_recharge', ['momo', 'om'])->sum('montant_r');
         $volumeGeneral = $recharges->sum('montant_r');
 
-        return view('layout.admin.transaction', compact(
+        return view('layout.admin.Transaction', compact(
             'recharges', 
             'depots', 
             'totalEspeces', 
