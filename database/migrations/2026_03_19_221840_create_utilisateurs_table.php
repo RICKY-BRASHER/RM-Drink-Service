@@ -52,7 +52,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->bigInteger('id_u')->unsigned()->primary(); // 
             $table->string('nom_u');
-            $table->string('localisation_u');
+            $table->string('localisation_u')->nullable();
             $table->string('email_u')->unique();
             $table->string('tel_u')->unique();
             $table->enum('role_u', ['client', 'employe' , 'admin'])->default('client');
@@ -64,12 +64,6 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
         });
-
-        DB::statement("
-            ALTER TABLE users 
-            ADD CONSTRAINT chk_tel_u_cameroun 
-            CHECK (tel_u REGEXP '^2376[0-9]{8}$')
-        ");
 
         // Creation de l'utilisateur admin par défaut
         User::create([

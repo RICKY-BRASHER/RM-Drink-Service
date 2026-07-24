@@ -32,6 +32,10 @@ class User extends Authenticatable
         'created_at',
         'updated_at',
     ];
+    public function getAuthPassword()
+{
+    return $this->mdp_u;
+}
     //cle etrangere
     public function depot(){
         return $this->belongsTo(Depot::class, 'depot_id');
