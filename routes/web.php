@@ -102,7 +102,8 @@ Route::post('/Distrib237/notification/marquer-lue/{id}', function($id) {
     return response()->json(['success' => true]);
 });
 
-Route::get('deconnect', [Authentification::class, 'logout'])->name('deconnect');
+Route::post('deconnect', [Authentification::class, 'logout'])->name('deconnect');
+
 Route::get('/action', function () { return redirect()->route('login'); })->name('home');
 
 require __DIR__.'/settings.php';
