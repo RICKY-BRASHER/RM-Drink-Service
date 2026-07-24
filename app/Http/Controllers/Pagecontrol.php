@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\depot;
+use App\Models\Depot;
 use App\Models\User;
 use App\Models\Recharge;
 use Illuminate\Support\Facades\Auth;
