@@ -24,7 +24,7 @@ return new class extends Migration
                 ->constrained('fournisseurs', 'id_fournisseur') // 💡 "id_fournisseur" est précisé ici
                 ->onDelete('cascade')
                 ->onUpdate('cascade');
-            $table->foreignId('depot_id')->constrained('depots')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('depot_id')->constrained('depots')->onDelete('restrict')->onUpdate('cascade');
             $table->timestamps();
         });
     }

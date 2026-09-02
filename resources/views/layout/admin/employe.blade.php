@@ -62,7 +62,7 @@
                                 <button class="btn btn-sm btn-outline-primary edit-employee-btn" data-bs-toggle="modal" data-bs-target="#employeeFormModal" data-id="{{ $employe->id_u }}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteEmployee({{ $employe->id_u }})">
+                                <button class="btn btn-sm btn-outline-danger ms-2 delete-employee-btn" data-id="{{ $employe->id_u }}">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -198,14 +198,33 @@
             $('#employeeFormModal').modal('show');
         });
 
-        // 4. ACTION DE VÉROUILLAGE DES ACCÈS (SÉCURITÉ INFRASTRUCTURE FRAUDE)
-        $(document).on('click', '.block-employee-btn', function() {
+        // 4. BOUTON SUPPRIMER : Confirmation et suppression de l'agent
+        $(document).on('click', '.delete-employee-btn', function() {
             var id = $(this).data('id');
-            var $row = $('#employeeRow_' + id);
-            var employeeName = $row.find('strong').text();
-
-            if (confirm("⚠️ Sécurité : Souhaitez-vous suspendre temporairement les droits d'accès de [ " + employeeName + " ] ? Ses verrous de facturation seront coupés immédiatement.")) {
-                alert("Accès suspendus. L'agent ne peut plus initialiser de session comptoir.");
+            if (confirm("⚠️ Attention : Voulez-vous vraiment supprimer cet agent ? Cette action est irréversible.")) {
+                $.ajax({
+                    url: "{{ url('/Distrib237/admin/utilisateurs/supprimer') }}/" + id,
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#employeeRow_' + id).fadeOut(500, function() {
+                                $(this).remove();
+                                var toastEl = document.getElementById('registerSuccessToast');
+                                var toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+                                var toastMessage = toastEl.querySelector('span');
+                                toastMessage.textContent = response.message || "L'agent a été supprimé avec succès.";
+                                toast.show();
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        // Alerte en cas de problème (ex: dépôt introuvable ou erreur serveur)
+                        alert("Échec : " + (xhr.responseJSON?.message || "Erreur de communication avec le serveur."));
+                    }
+                });
             }
         });
 

@@ -24,52 +24,24 @@
             <!-- 🔍 Bouton Recherche Rapide -->
             <div class="icon-btn" id="clientHeaderSearchBtn" title="Rechercher"><i class="bi bi-search"></i></div> 
             
-            <!-- 🔔 COMPOSANT DROPDOWN DE LA CLOCHE DES MESSAGES CLIENT -->
-            <div class="dropdown">
-                <button class="btn icon-btn position-relative p-0 border-0 bg-transparent text-white" type="button" id="clientNotifBell" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-bell"></i>
-                    <!-- 💡 Badge numérique dynamique branché sur les messages non lus du client -->
-                    @if(count($notificationsMessages) > 0)
-                        <span class="icon-badge position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger font-monospace" style="font-size: 0.62rem; padding: 3px 5px; min-width: 16px;">
-                            {{ count($notificationsMessages) }}
-                        </span>
-                    @endif
-                </button>
+            
+            <!-- 🔔 BOUTON CLOCHE CONNECTÉ VERS LA PAGE NOTIFICATIONS -->
+            <div class="icon-btn text-white position-relative" id="clientHeaderNotifBtn" onclick="window.location.href='/Distrib237/client/notifications'" style="cursor: pointer; overflow: hidden; width: 34px; height: 34px; border-radius: 50%; background-color: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;" title="Notifications">
                 
-                <!-- Menu déroulant des messages formaté pour écran de smartphone -->
-                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-3 rounded-4 mt-2" aria-labelledby="clientNotifBell" style="width: 310px; background-color: #111111; font-size: 0.85rem; border: 1px solid #1f2022 !important;">
-                    <li class="dropdown-header fw-bold text-white-50 pb-2 mb-2 border-bottom border-secondary border-opacity-20 ps-0" style="font-size:0.75rem; letter-spacing:0.5px;">
-                        🔔 MON FIL D'ACTUALITÉ
-                    </li>
-                    
-                    <div style="max-height: 240px; overflow-y: auto;" id="clientNotifDropdownBody">
-                        @forelse($notificationsMessages as $msg)
-                            <li class="p-2.5 rounded-3 mb-2 border border-white border-opacity-5" style="background-color: #161719;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="pe-2">
-                                        <strong class="{{ $msg->couleur_n }} text-uppercase d-block" style="font-size:0.75rem;">
-                                            <i class="bi {{ $msg->icone_n }} me-1"></i> {{ $msg->titre_n }}
-                                        </strong>
-                                        <span class="text-white-50 small d-block mt-1" style="font-size:0.78rem; line-height:1.2;">{{ $msg->message_n }}</span>
-                                        <small style="color: #71767b; font-size: 0.65rem;" class="font-monospace d-block mt-1">
-                                            {{ \Carbon\Carbon::parse($msg->created_at)->diffForHumans() }}
-                                        </small>
-                                    </div>
-                                    <!-- Clic sur la coche éteint le message en AJAX -->
-                                    <button type="button" class="btn p-0 text-success dismiss-client-msg-btn" data-id="{{ $msg->id_notif }}" title="Marquer comme lu">
-                                        <i class="bi bi-check2-circle fs-5"></i>
-                                    </button>
-                                </div>
-                            </li>
-                        @empty
-                            <li class="text-center py-4 text-muted small">
-                                <i class="bi bi-bell-slash display-6 d-block mb-1 opacity-20"></i>
-                                Aucun nouveau message reçu.
-                            </li>
-                        @endforelse
-                    </div>
-                </ul>
+                <!-- Icône de la cloche centrée -->
+                <i class="bi bi-bell fs-5"></i>
+                
+                <!-- 💡 PASTILLE BLEUE BOOTSTRAP DE NOTIFICATION NON LUE SUPERPOSÉE -->
+                @if(isset($notificationsMessages) && count($notificationsMessages) > 0)
+                    <span class="position-absolute p-1 bg-primary border border-dark rounded-circle" 
+                        style="top: 5px; right: 5px;" 
+                        id="notifBadge">
+                    </span>
+                @endif
             </div>
+
+            
+            
 
             <!-- 👤 BOUTON AVATAR CONNECTÉ VERS LA PAGE PROFIL -->
             <div class="icon-btn text-white" id="clientHeaderProfileBtn" onclick="window.location.href='/Distrib237/client/profil'" style="cursor: pointer; overflow: hidden; width: 34px; height: 34px; border-radius: 50%; background-color: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;" title="Mon Profil">
@@ -133,39 +105,6 @@
     <script src="https://code.jquery.com/jquery-4.0.0.js" integrity="sha256-9fsHeVnKBvqh3FB2HYu7g2xseAZ5MlN6Kz/qnkASV8U=" crossorigin="anonymous"></script>
     <script>
         $(document).ready(function() {
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                }
-            });
-            // ====================================================================
-            // ✉️ EXTINCTION SÉCURISÉE DES MESSAGES DANS LA CLOCHE DU SMARTPHONE
-            // ====================================================================
-            $(document).on('click', '.dismiss-client-msg-btn', function(e) {
-                e.stopPropagation(); // Empêche la fermeture brusque du volet dropdown mobile
-                
-                var button = $(this);
-                var idNotif = button.data('id');
-
-                $.ajax({
-                    url: '/Distrib237/notification/marquer-lue/' + idNotif,
-                    type: 'POST',
-                    data: {
-                        // Utilise le jeton CSRF présent dans les balises meta de l'application
-                        _token: $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val()
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            // Animation fluide de disparition de la bulle
-                            button.closest('li').fadeOut(200, function() {
-                                $(this).remove();
-                                location.reload(); // Synchronise le badge de notification
-                            });
-                        }
-                    }
-                });
-            });
-
             // Optionnel : Effet visuel lors du clic sur le bouton de recherche
             $('#clientHeaderSearchBtn').on('click', function() {
                 alert("Moteur d'indexation Distrib237 : Recherche de fiches boissons...");

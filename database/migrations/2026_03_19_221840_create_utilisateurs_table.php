@@ -57,8 +57,9 @@ return new class extends Migration
             $table->string('tel_u')->unique();
             $table->enum('role_u', ['client', 'employe' , 'admin'])->default('client');
             $table->enum('type_u', ['particulier', 'Depot','tricycle', 'personnel', 'magasinier', 'transporteur', 'chauffeur', 'manutentionnaire' ])->default('particulier');
-            $table->foreignId('depot_id')->nullable()->constrained('depots')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('depot_id')->nullable()->constrained('depots')->onDelete('restrict')->onUpdate('cascade'); 
             $table->decimal('solde_u', 10, 2)->default(0);
+            
             $table->string('mdp_u')->nullable();
             $table->string('avatar_u')->nullable();
             $table->rememberToken();
@@ -119,6 +120,6 @@ return new class extends Migration
             DB::statement("ALTER TABLE users DROP CONSTRAINT IF EXISTS chk_tel_u_cameroun");
         }
         Schema::dropIfExists('users');
-        Schema::dropIfExists('depot');
+        Schema::dropIfExists('depots');
     }
 };

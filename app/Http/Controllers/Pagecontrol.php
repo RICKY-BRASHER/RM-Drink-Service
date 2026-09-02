@@ -36,18 +36,37 @@ class Pagecontrol extends Controller
         // 📈 SECTION 1 : LES GRANDES MASSES FINANCIÈRES (CUMUL RÉSEAU)
         // ====================================================================
         
-        // CA Journalier Cumulé (Somme de montant_r du jour pour les ventes)
-        $caGlobalJour = DB::table('recharges')
+        // Flux 1 : Somme des recharges d'épargne pures effectuées aujourd'hui
+        $totalRechargesPuresJour = DB::table('recharges')
             ->whereDate('created_at', $today)
-            ->whereIn('type_mouvement', ['achat_direct', 'creation_dette'])
+            ->where('type_mouvement', 'recharge') // On cible uniquement les approvisionnements de portefeuilles
             ->sum('montant_r');
 
+        // Flux 2 : Somme de l'argent réel encaissé au guichet pour les ventes du jour
+        $totalVentesCashJour = DB::table('ventes')
+            ->whereDate('created_at', $today)
+            ->whereIn('statut', ['attente', 'payer']) // On prend les ventes soldées et les acomptes des ventes en attente
+            ->sum('montant_verse');
+
+        // 🧮 TOTAL UNIFIÉ : Trésorerie brute entrée aujourd'hui dans tout le réseau Distrib237
+        $caGlobalJour = $totalRechargesPuresJour + $totalVentesCashJour;
         // CA Mensuel Cumulé (Trésorerie Centrale)
-        $caGlobalMois = DB::table('recharges')
+            // Flux 1 Mensuel : Les recharges d'épargne du mois
+        $totalRechargesPuresMois = DB::table('recharges')
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)
-            ->whereIn('type_mouvement', ['achat_direct', 'creation_dette'])
+            ->where('type_mouvement', 'recharge')
             ->sum('montant_r');
+
+        // Flux 2 Mensuel : Le cash issu des ventes du mois
+        $totalVentesCashMois = DB::table('ventes')
+            ->whereMonth('created_at', $currentMonth)
+            ->whereYear('created_at', $currentYear)
+            ->whereIn('statut', ['attente', 'payer'])
+            ->sum('montant_verse');
+
+        // 🧮 TOTAL UNIFIÉ MENSUEL
+        $caGlobalMois = $totalRechargesPuresMois + $totalVentesCashMois;
 
         // Somme géante de toutes les dettes actives non recouvrées du Cameroun
         $detteTotaleResseau = DB::table('users')
@@ -61,29 +80,51 @@ class Pagecontrol extends Controller
             ->where('statut', 'envoyer')
             ->count();
 
+                // ====================================================================
+        // 📍 SECTION 2 : PALMARÈS ET PERFORMANCES COMPARÉES DES DÉPÔTS (AJUSTÉ)
         // ====================================================================
-        // 📍 SECTION 2 : PERFORMANCES ET RENTABILITÉ COMPARÉE DES DÉPÔTS
-        // ====================================================================
-        // Jointure chirurgicale sur depots.id et users.depot_id
+        // Cette requête calcule le CA réel mensuel (Cash des ventes + Recharges pures) par dépôt
         $performancesDepots = DB::table('depots')
-            ->leftJoin('users', 'depots.id', '=', 'users.depot_id')
-            ->leftJoin('recharges', function($join) use ($currentMonth, $currentYear) {
-                $join->on('users.id_u', '=', 'recharges.client_id')
-                     ->whereMonth('recharges.created_at', $currentMonth)
-                     ->whereYear('recharges.created_at', $currentYear)
-                     ->whereIn('recharges.type_mouvement', ['achat_direct', 'creation_dette']);
-            })
             ->select(
                 'depots.id as depot_id_real',
                 'depots.nom_depot',
                 'depots.adresse_depot',
-                DB::raw('IFNULL(SUM(recharges.montant_r), 0) as ca_mensuel_depot'),
-                DB::raw('(SELECT COUNT(id_produit) FROM produits WHERE depot_id = depots.id) as total_references'),
-                DB::raw('(SELECT COUNT(id_u) FROM users WHERE depot_id = depots.id AND role_u = "employe") as nb_agents')
+                
+                // 💡 SOUS-REQUÊTE FINANCIÈRE 1 : Calcul du cash réel des ventes du mois pour ce dépôt
+                DB::raw("IFNULL((
+                    SELECT SUM(ventes.montant_verse) 
+                    FROM ventes 
+                    JOIN users ON ventes.client_id = users.id_u 
+                    WHERE users.depot_id = depots.id 
+                      AND MONTH(ventes.created_at) = {$currentMonth} 
+                      AND YEAR(ventes.created_at) = {$currentYear} 
+                      AND ventes.statut IN ('attente', 'payer')
+                ), 0) as total_ventes_depot"),
+
+                // 💡 SOUS-REQUÊTE FINANCIÈRE 2 : Calcul des recharges pures du mois pour ce dépôt
+                DB::raw("IFNULL((
+                    SELECT SUM(recharges.montant_r) 
+                    FROM recharges 
+                    JOIN users ON recharges.client_id = users.id_u 
+                    WHERE users.depot_id = depots.id 
+                      AND MONTH(recharges.created_at) = {$currentMonth} 
+                      AND YEAR(recharges.created_at) = {$currentYear} 
+                      AND recharges.type_mouvement = 'recharge'
+                ), 0) as total_recharges_depot"),
+
+                // 📦 STATISTIQUES LOGISTIQUES DU DÉPÔT
+                DB::raw("(SELECT COUNT(id_produit) FROM produits WHERE depot_id = depots.id) as total_references"),
+                DB::raw("(SELECT COUNT(id_u) FROM users WHERE depot_id = depots.id AND role_u = 'employe') as nb_agents")
             )
-            ->groupBy('depots.id', 'depots.nom_depot', 'depots.adresse_depot')
-            ->orderBy('ca_mensuel_depot', 'desc')
             ->get();
+
+        // 🧮 TRANSFORMATION SÉCURISÉE : On additionne les deux flux pour chaque ligne et on trie du plus riche au moins riche
+        $performancesDepots = $performancesDepots->map(function($depot) {
+            // Addition dynamique des deux flux comptables
+            $depot->ca_mensuel_depot = (float)$depot->total_ventes_depot + (float)$depot->total_recharges_depot;
+            return $depot;
+        })->sortByDesc('ca_mensuel_depot')->values();
+
 
         // ====================================================================
         // 🦁 SECTION 3 : PART DE MARCHÉ DES BRASSEURS (VOLUME DU MOIS)

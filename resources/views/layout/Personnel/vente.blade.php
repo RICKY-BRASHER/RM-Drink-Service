@@ -73,18 +73,49 @@
 
 
 
-                <!-- Choix Boisson -->
+                <!-- Choix Boisson Classé par Fournisseur -->
                 <div class="mb-3">
                     <label class="form-label form-label-custom mb-1 text-uppercase tracking-wider text-secondary small fw-bold">🍾 Sélection de la Boisson</label>
                     <select class="form-select border-2 fw-semibold" id="choixproduit" name="produit_id" disabled>
                         <option value="" disabled selected>-- Choisir la référence --</option>
-                        @foreach($produitsDuDepot as $produit)
-                            <option value="{{ $produit->id_produit }}" data-name="{{ strtoupper($produit->nom_p) }}" data-format="{{ strtoupper($produit->format_p) }}" data-price="{{ (int)$produit->prix_p }}" data-supplier="{{ $produit->fournisseur?->nom_fournisseur ?? 'AUTRES' }}" data-stock="{{ (int)$produit->quantite_p }}">
-                                🍺 {{ strtoupper($produit->nom_p) }} [{{ $produit->fournisseur?->nom_fournisseur ?? 'AUTRES' }}] ({{ number_format($produit->prix_p, 0, ',', ' ') }} F)
-                            </option>
+                        
+                        @php
+                            // 💡 REGROUPEMENT INSTANTANÉ : On classe la collection de boissons par le nom du fournisseur
+                            $produitsGroupesParFournisseur = $produitsDuDepot->groupBy(function($prod) {
+                                return $prod->fournisseur?->nom_fournisseur ?? 'AUTRES BRASSERIES';
+                            });
+                        @endphp
+
+                        <!-- DOUBLE BOUCLE BLADE : Génération des groupes de brasseries -->
+                        @foreach($produitsGroupesParFournisseur as $nomFournisseur => $boissons)
+                            <optgroup label="🏢 GAMME {{ strtoupper($nomFournisseur) }}" style="color: #0052ff; font-weight: bold; background-color: #f8fafc;">
+                                
+                                @foreach($boissons as $produit)
+                                    @php 
+                                        // Extraction et formatage propre pour les attributs data
+                                        $nomP = strtoupper($produit->nom_p);
+                                        $formatP = strtoupper($produit->format_p);
+                                        $prixP = (int)$produit->prix_p;
+                                        $stockP = (int)$produit->quantite_p;
+                                        $supplierP = $produit->fournisseur?->nom_fournisseur ?? 'AUTRES';
+                                    @endphp
+                                    
+                                    <option value="{{ $produit->id_produit }}" 
+                                            data-name="{{ $nomP }}" 
+                                            data-format="{{ $formatP }}" 
+                                            data-price="{{ $prixP }}" 
+                                            data-supplier="{{ $supplierP }}" 
+                                            data-stock="{{ $stockP }}"
+                                            style="color: #000000; font-weight: 500; background-color: #ffffff;">
+                                        🍾 {{ $nomP }} ({{ $formatP }}) 
+                                    </option>
+                                @endforeach
+
+                            </optgroup>
                         @endforeach
                     </select>
                 </div>
+
 
                 <!-- Métadonnées Boisson -->
                 <div class="row g-2 mb-3 d-none" id="posProductMetaBox">
@@ -727,7 +758,7 @@ $(document).ready(function() {
         var resteNetAPayer = totalFacture + detteActive - epargneDisponible;
 
         // 🛑 Sécurité : Blocage si dette active précédente et montant versé insuffisant
-        if (!isWalkin && soldeActuel < 0) {
+        if (!isWalkin && soldeActuel < -5000) { // Seuil de dette active à 5000 FCFA
             var montantRequisPourValider = totalFacture + detteActive;
             
             if (argentVerse < montantRequisPourValider) {

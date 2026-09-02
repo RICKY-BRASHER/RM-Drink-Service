@@ -69,13 +69,13 @@
                         <th style="width: 120px;">Dépôt</th>
                         <th style="width: 150px;">Type d'opération</th>
                         <th>Bénéficiaire / Acteur</th>
-                        <th>Détails / Description</th>
-                        <th class="text-end" style="width: 140px;">Impact de Flux</th>
+                        <th>Détails</th>
+                        <th class="text-end" style="width: 140px;">Montant/Qte</th>
                         <th class="text-center" style="width: 100px;">Visualiser</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white" id="historyTableBody">
-                    
+
                     {{-- 🛒 1. LES FACHURES DE VENTES / SORTIES (COMMUNES ADMIN + EMPLOYE) --}}
                     @foreach($ventes as $v)
                         @php
@@ -105,9 +105,11 @@
                             <td><strong class="text-secondary small uppercase"><i class="bi bi-geo-alt-fill me-1"></i>{{ $v->client?->depot?->nom_depot ?? 'Comptoir' }}</strong></td>
                             <td>
                                 @if($v->statut === 'payer')
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 py-1 px-2.5 rounded-pill fw-bold small">🛒 VENTE SOLDEE</span>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 py-1 px-2.5 rounded-pill fw-bold small">PAYER NON LIVRER</span>
+                                @elseif($v->statut === 'annuler' )
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10 py-1 px-2.5 rounded-pill fw-bold small">❌ VENTE ANNULER</span>
                                 @else
-                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 py-1 px-2.5 rounded-pill fw-bold small">⏳ EN ATTENTE</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 py-1 px-2.5 rounded-pill fw-bold small">LIVRER</span>
                                 @endif
                             </td>
                             <td><strong class="text-dark text-uppercase">{{ $v->client?->nom_u ?? 'Client de passage' }}</strong></td>
@@ -122,37 +124,66 @@
                                     <i class="bi bi-eye-fill text-secondary"></i>
                                 </button>
                             </td>
-                        </tr>
+                        </tr> 
                     @endforeach
 
-                    {{-- 📦 2. LES APPROVISIONNEMENTS / ENTRÉES (RÉSERVÉ EXCLUSIVEMENT A L'ADMIN) --}}
+                    {{-- 📦 2. LES APPROVISIONNEMENTS GENERAUX / ENTRÉES (RÉSERVÉ EXCLUSIVEMENT A L'ADMIN) --}}
                     @if(Auth::user()->role_u === 'admin')
                         @foreach($approvisionnements as $app)
-                            @php $slugD = Str::slug($app->nom_depot); @endphp
+                            @php 
+                                $slugD = Str::slug($app->nom_depot); 
+                                $modalDetailsHtml = str_replace('|', '<br>', $app->liste_produits_html);
+                            @endphp
                             <tr class="history-row align-middle" data-type="approv" data-depot="{{ $slugD }}">
-                                <td class="ps-4 font-monospace small text-muted">{{ Carbon\Carbon::parse($app->created_at)->format('d/m/Y H:i') }}</td>
+                                <td class="ps-4 font-monospace small text-muted">
+                                    {{ \Carbon\Carbon::parse($app->created_at)->format('d/m/Y H:i') }}
+                                </td>
                                 
-                                <!-- Référence d'approvisionnement -->
-                                <td class="font-monospace text-muted small">
-                                    {{ $app->reference_app ?? 'APPROV-' . $app->id_app }}
+                                <td class="font-monospace text-dark fw-bold">
+                                    BON-APP-{{ $app->id_app }}
                                 </td>
 
-                                <td><strong class="text-secondary small uppercase"><i class="bi bi-geo-alt-fill me-1"></i>{{ $app->nom_depot }}</strong></td>
-                                <td><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-10 py-1 px-2.5 rounded-pill fw-bold small"><i class="bi bi-box-seam me-1"></i> ENTRÉE STOCK</span></td>
-                                <td><strong class="text-dark text-uppercase">{{ $app->nom_employe }}</strong> <small class="text-muted d-block">Gestionnaire</small></td>
-                                <td class="small text-secondary">{{ strtoupper($app->nom_p) }} <small class="text-muted">({{ $app->format_p }})</small></td>
-                                <td class="text-end fw-bold font-monospace text-info">+{{ (float)$app->quantite_ajoutee }} u</td>
+                                <td>
+                                    <strong class="text-secondary small text-uppercase">
+                                        <i class="bi bi-geo-alt-fill me-1"></i>{{ $app->nom_depot }}
+                                    </strong>
+                                </td>
+                                
+                                <td>
+                                    <span class="badge bg-info bg-opacity-10 text-info border-danger border-opacity-10 py-1.5 px-3 rounded-pill fw-bold small">
+                                        <i class="bi bi-box-seam me-1"></i> ENTRÉE STOCK
+                                    </span>
+                                </td>
+                                
+                                <!-- 💡 NOUVEL AFFICHAGE : BRASSERIE / FOURNISSEUR SOURCE -->
+                                <td>
+                                    <span class="badge bg-dark bg-opacity-10 text-dark border border-dark border-opacity-10 py-1.5 px-3 rounded-3 fw-bold small text-uppercase">
+                                        🏢 {{ $app->nom_fournisseur }}
+                                    </span>
+                                </td>
+                                
+                                <td class="small text-muted font-monospace">
+                                    Livraison {{ $app->nom_fournisseur }} consolidée globale
+                                </td>
+                                
+                                <td class="text-end fw-bold font-monospace text fs-6">
+                                    {{ number_format($app->total_boissons, 0, ',', ' ') }} Produit(s)
+                                </td>
+                                
                                 <td class="text-center">
+                                    <!-- Mise à jour des attributs data de la modal pour l'audit fournisseur -->
                                     <button type="button" class="btn btn-sm btn-light border view-history-btn" 
-                                            data-type="Approvisionnement Stock" 
-                                            data-title="{{ $app->reference_app ?? 'APPROV-' . $app->id_app }}" 
-                                            data-details="Boisson insérée : <b>{{ strtoupper($app->nom_p) }}</b><br>Volume ajouté : <b>{{ (float)$app->quantite_ajoutee }} unités</b><br>Dépôt de livraison : <b>{{ $app->nom_depot }}</b><br>Auteur : <b>{{ $app->nom_employe }}</b>">
+                                            data-type="BON GLOBAL D'ENTRÉE MAGASIN" 
+                                            data-title="BON N°{{ $app->id_app }}" 
+                                            data-details="Fournisseur : <b>{{ strtoupper($app->nom_fournisseur) }}</b><br>Dépôt de livraison : <b>{{ $app->nom_depot }}</b><br>Volume total reçu : <b>{{ $app->total_boissons }} produits</b><hr><div class='text-start'>{{ $modalDetailsHtml }}</div>">
                                         <i class="bi bi-eye-fill text-secondary"></i>
                                     </button>
                                 </td>
                             </tr>
                         @endforeach
                     @endif
+
+
 
                 </tbody>
             </table>

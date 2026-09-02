@@ -18,8 +18,8 @@ return new class extends Migration
             $table->integer('quantite_ajoutee'); // La quantité livrée
             $table->timestamps();
 
-            $table->foreign('approvisionnement_id')->references('id_app')->on('approvisionnements')->onDelete('cascade');
-            $table->foreign('produit_id')->references('id_produit')->on('produits')->onDelete('cascade');
+            $table->foreign('approvisionnement_id')->references('id_app')->on('approvisionnements')->onDelete('cascade')->onUpdate('restrict');
+            $table->foreign('produit_id')->references('id_produit')->on('produits')->onDelete('restrict')->onUpdate('cascade');
         });
 
 

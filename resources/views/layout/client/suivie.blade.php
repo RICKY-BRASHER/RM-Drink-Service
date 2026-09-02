@@ -50,13 +50,17 @@
 
                 // 2. ÉTABLISSEMENT DU STATUT ET DES COULEURS FINTECH
                 $statutBrut = $achat->statut;
-                if ($statutBrut === 'payer') {
-                    $borderClass = 'border-green-success'; $badgeClass = 'badge-cyber-success'; $labelBadge = 'VALIDÉ & LIVRÉ';
+                if($statutBrut === 'livrer') {
+                    $borderClass = 'border-green-success'; $badgeClass = 'badge-cyber-success'; $labelBadge = 'LIVRÉ';
+                } elseif($statutBrut === 'payer') {
+                    $borderClass = 'border-green-success'; $badgeClass = 'badge-cyber-success'; $labelBadge = 'PAYÉ, LIVRAISON EN COURS...';
                 } elseif ($statutBrut === 'annuler') {
                     $borderClass = 'border-red-danger'; $badgeClass = 'badge-cyber-danger'; $labelBadge = 'ANNULÉ';
-                } else {
+                } elseif ($statutBrut === 'envoyer') {
                     $borderClass = 'border-blue-active'; $badgeClass = 'badge-cyber-blue'; 
-                    $labelBadge = ($statutBrut === 'envoyer') ? 'ENVOYÉ' : 'EN ATTENTE';
+                    $labelBadge = 'ENVOYÉ';
+                } else {
+                    $borderClass = 'border-yellow-i'; $badgeClass = 'badge-cyber-info'; $labelBadge = 'EN ATTENTE DE PAYEMENT';
                 }
 
                 $timestampSort = $achat->created_at->format('YmdHi');
@@ -89,12 +93,16 @@
                         <strong class="text-white font-monospace" style="font-size: 0.88rem;">{{ number_format($achat->montant_total, 0, ',', ' ') }} FCFA</strong>
                     </div>
                     
-                    @if($statutBrut === 'payer')
-                        <small class="text-success fw-bold" style="font-size: 0.75rem;"><i class="bi bi-check2-all"></i> Livré ✔️</small>
+                    @if($statutBrut === 'livrer')
+                        <small class="text-success fw-bold" style="font-size: 0.75rem;"><i class="bi bi-check-all"></i> Payé et Livrer ✔️</small>
+                    @elseif($statutBrut === 'payer')
+                        <small class="text-success fw-bold" style="font-size: 0.75rem;"><i class="bi bi-check-all"></i> livraison en cours ...</small>
                     @elseif($statutBrut === 'annuler')
-                        <small class="text-danger fw-bold" style="font-size: 0.75rem;">Refusé ❌</small>
+                        <small class="text-danger fw-bold" style="font-size: 0.75rem;">Refusé </small>
+                    @elseif($statutBrut === 'attente')
+                        <small class="text-white-50" style="font-size: 0.75rem;">Attente de payement, Livraison en cours ...</small>
                     @else
-                        <small class="text-white-50" style="font-size: 0.75rem;">En attente 📦</small>
+                        <small class="text-white-50" style="font-size: 0.75rem;">En attente de validation ...</small>
                     @endif
                 </div>
 
@@ -108,7 +116,7 @@
                             </button>
                         </div>
                         <div class="col-6">
-                            @if($statutBrut === 'payer')
+                            @if($statutBrut === 'payer' || $statutBrut === 'livrer' || $statutBrut === 'attente')
                                 <a href="/gestion/caisse/imprimer-pdf/{{ $achat->id }}?format=ticket" target="_blank" class="btn btn-inline-action w-100 py-2.5 text-decoration-none">
                                     <i class="bi bi-printer-fill me-1.5"></i> Reçu PDF
                                 </a>
@@ -120,7 +128,7 @@
                         </div>
                     </div>
                     @if($statutBrut !== 'payer' && $statutBrut !== 'annuler')
-                        <div class="alert-inline-msg" style="font-size: 0.7rem; color: #71767b; text-align: center; margin-top: 6px;">🔒 Le reçu officiel PDF s'activera après validation de la secrétaire.</div>
+                        <div class="alert-inline-msg" style="font-size: 0.7rem; color: #71767b; text-align: center; margin-top: 6px;">🔒 Le reçu officiel PDF s'activera après Validation.</div>
                     @endif
                 </div>
             </div>

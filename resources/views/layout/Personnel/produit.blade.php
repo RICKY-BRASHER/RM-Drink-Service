@@ -25,7 +25,7 @@
                     <i class="bi bi-building fs-5"></i>
                 </div>
                 <h5 class="fw-bold text-dark m-0 text-uppercase tracking-wide" style="font-size: 1.05rem;">
-                    {{ $nomFournisseur }}
+                   GAMME {{ $nomFournisseur }}
                 </h5>
             </div>
             <span class="badge bg-light text-primary border border-primary border-opacity-10 rounded-pill px-3 py-2 fw-semibold">

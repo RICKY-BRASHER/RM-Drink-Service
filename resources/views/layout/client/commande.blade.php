@@ -7,7 +7,7 @@
     <div class="mb-3 ps-1">
         <span class="text-secondary-custom small fw-bold text-uppercase tracking-wider" style="font-size: 0.65rem;">Catalogue boissons</span>
         <h5 class="fw-bold m-0 text-white" style="letter-spacing: -0.3px;">Passer une Commande</h5>
-        <small style="color: #71767b; font-size: 0.75rem;">Dépôt d'approvisionnement : <strong class="text-white">LOGPOM</strong></small>
+        <small style="color: #71767b; font-size: 0.75rem;">Dépôt d'approvisionnement : <strong class="text-white">{{ auth()->user()->depot->nom_depot }}</strong></small>
     </div>
 
     <!-- 🏷️ VOLET DES FOURNISSEURS EN SCROLL HORIZONTAL CORRIGÉ -->
@@ -310,18 +310,10 @@ $(document).ready(function() {
                     $('#volumeConfigModal').modal('hide');
                     
                     // 💡 Notification Succès Épurée et automatique (sans bouton pour aller vite)
-                    Swal.fire({
-                        title: 'Mis à jour !',
-                        text: 'Le produit est enregistré dans votre panier.',
-                        icon: 'success',
-                        width: '310px',
-                        showConfirmButton: false,
-                        timer: 1300
-                    });
-
+                   
                     setTimeout(function() {
                         location.reload(); 
-                    }, 1200);
+                    }, 1000);
                 }
             },
             error: function(xhr) {
@@ -347,19 +339,7 @@ $(document).ready(function() {
         var row = $('#cartRow_' + pId); 
 
         // 💡 Boîte de confirmation Tactile Épurée (Largeur bridée à 310px)
-        Swal.fire({
-            title: 'Supprimer ?',
-            text: "Retirer cette boisson de votre réservation ?",
-            icon: 'warning',
-            width: '310px',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#71767b',
-            confirmButtonText: 'Oui, retirer',
-            cancelButtonText: 'Annuler',
-            reverseButtons: true // Place le bouton de validation à droite, parfait pour le pouce
-        }).then((result) => {
-            if (result.isConfirmed) {
+        
                 $.ajax({
                     url: '/Distrib237/client/supprimer-produit/' + pId,
                     type: 'DELETE',
@@ -377,18 +357,11 @@ $(document).ready(function() {
                                 if (response.badge_count === 0) {
                                     $('#cartSummaryModal').modal('hide');
                                     
-                                    Swal.fire({
-                                        title: 'Panier vide',
-                                        text: 'Votre réservation ne contient plus aucun article.',
-                                        icon: 'info',
-                                        width: '310px',
-                                        showConfirmButton: false,
-                                        timer: 1500
-                                    });
+                                    
 
                                     setTimeout(function() {
                                         location.reload(); 
-                                    }, 1400);
+                                    }, 500);
                                 }
                             });
                         }
@@ -403,8 +376,6 @@ $(document).ready(function() {
                         });
                     }
                 });
-            }
-        });
     });
 
     // ====================================================================

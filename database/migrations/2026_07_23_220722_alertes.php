@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('alertes_stocks', function (Blueprint $table) {
             $table->id('id_alerte');
-            $table->foreignId('produit_id')->constrained('produits', 'id_produit')->onDelete('cascade');
-            $table->foreignId('depot_id')->constrained('depots', 'id')->onDelete('cascade');
+            $table->foreignId('produit_id')->constrained('produits', 'id_produit')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreignId('depot_id')->constrained('depots', 'id')->onDelete('restrict')->onUpdate('cascade');
             $table->decimal('quantite_restante', 15, 2);
             $table->integer('seuil_limite');
             $table->enum('statut_lecture', ['non_lu', 'lu'])->default('non_lu');

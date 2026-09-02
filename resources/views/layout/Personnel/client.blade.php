@@ -32,26 +32,28 @@
             <table class="table table-hover align-middle m-0" id="clientTable">
                 <thead>
                     <tr class="text-muted small text-uppercase font-monospace border-bottom bg-light">
-                        <th style="width: 60px;"></th>
+                        <th style="width: 50px;"></th>
                         <th>Code Client</th>
                         <th>Nom complet / Établissement</th>
                         <th>Numéro de Téléphone</th>
                         <th>Adresse de Livraison</th>
-                        <th class="text-end">Solde Compte Épargne</th>
+                        <th class="text-center">Solde Épargne</th>
+                        <th>Bilan Emballages</th>
                         <th class="text-center" style="width: 120px;">Actions</th>
                         
                     </tr>
                 </thead>
-                <tbody class="bg-white">
+                <tbody class="bg-white ">
                     @foreach($clients as $index => $client)
-                        <tr class="client-row" id="clientRow_{{ $client->id_u }}">
+                        <tr class="client-row" id="clientRow_{{ $client->id_u }}" style="font-size: 0.9rem;">
                             
-                            <!-- 💡 DEBUT COLONNE AVATAR DYNAMIQUE -->
+                            <!-- 💡 DEBUT COLONNE AVATAR DYNAMIQUE CORRIGÉE -->
                             <td class="ps-3">
                                 <div class="table-avatar-wrapper shadow-sm view-large-avatar-trigger" 
                                     style="cursor: pointer;" 
                                     data-name="{{ strtoupper($client->nom_u) }}"
-                                    data-src="{{ $client->avatar_u ? asset('storage/avatars/' . $client->avatar_u) : 'https://ui-avatars.com' . urlencode($client->nom_u) . '&background=0052ff&color=fff&size=256' }}">
+                                    {{-- 💡 CORRECTION DU LIEN : Ajout de /api/?name= pour sécuriser l'image d'initiale par défaut --}}
+                                    data-src="{{ $client->avatar_u ? asset('storage/avatars/' . $client->avatar_u) : 'https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=' . urlencode($client->nom_u)}}">
                                     
                                     @if($client->avatar_u)
                                         <!-- Cas A : Le client possède une vraie photo sur le serveur -->
@@ -67,17 +69,76 @@
                             </td>
                             <!-- 💡 FIN COLONNE AVATAR DYNAMIQUE -->
 
-                            <td class="font-monospace fw-bold text-secondary"><strong class="text-danger">{{ $client->id_u }}</strong></td>
+
+                            <td class="font-monospace fw-bold text-secondary "><strong class="text-danger">{{ $client->id_u }}</strong></td>
                             <td>
                                 <strong>{{ strtoupper($client->nom_u) }}</strong><br>
                                 <small class="text-muted">{{ $client->email_u }}</small>
                             </td> 
                             <td><strong class="text-secondary">{{ $client->tel_u }}</strong></td>
                             <td><strong class="text-primary">{{ $client->localisation_u }}</strong></td>
-                            <td class="text-end fw-bold text-success">{{ number_format($client->solde_u, 0, ',', ' ') }} FCFA</td>
-                            
-                            <td class="text-center">
+                            <td class="text-center fw-bold {{ $client->solde_u < 0 ? 'text-danger' : 'text-success' }}">
+                                {{ number_format($client->solde_u, 0, ',', ' ') }} FCFA
+                            </td>
+                            <td>
+                                @php
+                                    $badgesConsignes = [];
+                                    $possedeUneDetteOuUnSurplus = false;
+                                    
+                                    if (!empty($client->bilan_consignes_global)) {
+                                        $fournisseursActifs = explode('|', $client->bilan_consignes_global);
+                                        
+                                        foreach ($fournisseursActifs as $fActif) {
+                                            $donnees = explode(':', $fActif);
+                                            
+                                            if (count($donnees) === 3) {
+                                                $nomFournisseur = strtoupper($donnees[0]);
+                                                $reliquatF = (int)$donnees[1]; // Formule : Achetés - Rendus
+                                                
+                                                // 💡 LE FILTRE DEMANDÉ : On ignore totalement les cas égaux à 0
+                                                if ($reliquatF !== 0) {
+                                                    $possedeUneDetteOuUnSurplus = true;
+
+                                                    if ($reliquatF > 0) {
+                                                        // 🔴 Cas supérieur à 0 : Le client doit (Dette)
+                                                        $badgesConsignes[] = '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10 font-monospace py-1.5 px-2.5 rounded-2" style="font-size:0.75rem;"><i class="bi bi-exclamation-circle-fill me-1"></i>' . $reliquatF . ' ' . $nomFournisseur . '</span>';
+                                                    } else {
+                                                        // 🔵 Cas inférieur à 0 : Le client a une avance (Surplus)
+                                                        $badgesConsignes[] = '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 font-monospace py-1.5 px-2.5 rounded-2" style="font-size:0.75rem;"><i class="bi bi-plus-circle-fill me-1"></i>+' . abs($reliquatF) . ' ' . $nomFournisseur . '</span>';
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                @endphp
+
+                                <!-- 🎨 AFFICHAGE LOGIQUE SANS COMPLICATION -->
+                                @if(empty($client->bilan_consignes_global))
+                                    {{-- Le client n'a jamais effectué la moindre commande de boissons consigné --}}
+                                    <span class="text-muted small font-monospace" style="font-size: 0.8rem;">— Aucun historique</span>
+                                @elseif(!$possedeUneDetteOuUnSurplus)
+                                    {{-- 🟢 Il a un historique, mais tous les calculs (Achetés - Rendus) sont tombés pile-poil à 0 --}}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 py-1.5 px-2.5 rounded-2 font-monospace" style="font-size: 0.78rem;">
+                                        <i class="bi bi-shield-check-fill me-1"></i> Bilan Propre
+                                    </span>
+                                @else
+                                    {{-- Affichage exclusif des dettes et des surplus actifs --}}
+                                    <div class="d-flex flex-wrap gap-1.5">
+                                        @foreach($badgesConsignes as $badge)
+                                            {!! $badge !!}
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </td>
+                            <td class="text">
                                 @if(Auth::user()->role_u === 'employe')
+                                    <button type="button" class="btn btn-icon btn-light border btn-sm rounded-3 open-return-casiers-modal-btn text-primary border-primary" 
+                                        data-id="{{ $client->id_u }}" 
+                                        data-name="{{ $client->nom_u }}" 
+                                        title="Retour Casiers / Emballages en différé">
+                                        <i class="bi bi-arrow-left-right"></i>
+                                    </button>
+
                                     <button type="button" class="btn btn-icon btn-light border btn-sm rounded-3 open-recharge-modal-btn text-success border-warning" 
                                         data-id="{{ $client->id_u }}" data-name="{{ $client->nom_u }}" data-solde="{{ $client->solde_u }}" data-bs-toggle="tooltip" title="Recharger le compte">
                                         <i class="bi bi-wallet2"></i>
@@ -250,6 +311,42 @@
     </div>
 </div>
 
+<!-- 📦 MODAL DE RESTITUTION LIBRE DE CASIERS (SANS VENTE) -->
+<div class="modal fade" id="modalFreeCasierReturn" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                <h6 class="fw-bold m-0"><i class="bi bi-arrow-left-right text-success me-2"></i>Dépôt d'Emballages</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="small text-muted mb-3">Client : <b class="text-dark" id="labelFreeReturnClientName"></b>. Enregistrement d'un retour ou d'une avance d'emballages vides.</p>
+                
+                <form id="formSubmitFreeCasierReturn">
+                    <input type="hidden" id="targetFreeReturnClientId" name="client_id">
+
+                    <!-- 🔄 Génération des inputs pour chaque brasserie -->
+                    @foreach($fournisseurs ?? \DB::table('fournisseurs')->select('id_fournisseur', 'nom_fournisseur')->get() as $fourn)
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary text-uppercase font-monospace mb-1" style="font-size:0.7rem;">
+                                CASIERS VIDES {{ strtoupper($fourn->nom_fournisseur) }} REÇUS :
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light fw-bold font-monospace text-muted">cs</span>
+                                <input type="number" name="rendus[{{ $fourn->id_fournisseur }}]" class="form-control text-center font-monospace fw-bold fs-5 py-1.5" value="0" min="0" required>
+                            </div>
+                        </div>
+                    @endforeach
+
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold rounded-3 mt-3 shadow" id="btnSubmitFreeReturnProcess">
+                        <i class="bi bi-check2-all me-1"></i> Valider le déchargement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -312,9 +409,33 @@
             var $row = $('#clientRow_' + id);
 
             if (confirm("Êtes-vous sûr de vouloir retirer ce client des registres du dépôt ?")) {
-                $row.fadeOut(500, function() {
-                    $(this).remove();
-                    alert("Client retiré avec succès (Simulation DOM).");
+                $.ajax({
+                    url: '/Distrib237/admin/utilisateurs/supprimer/' + id,
+                    type: 'POST',
+                    data: {
+                        _token: $('input[name="_token"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $row.fadeOut(300, function() {
+                                $(this).remove();
+                                // Affiche un toast de succès après suppression
+                                var toastEl = document.getElementById('registerSuccessToast');
+                                var toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+                                var toastMessage = toastEl.querySelector('span');
+                                toastMessage.textContent = response.message || "Le client a été supprimé avec succès.";
+                                toast.show();
+                            });
+                            
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erreur',
+                            text: xhr.responseJSON?.message || "Une erreur est survenue lors de la suppression du client."
+                        });
+                    }
                 });
             }
         });
@@ -490,6 +611,42 @@
             $('#clientAvatarViewerModal').modal('show');
         });
 
+        $(document).on('click', '.open-return-casiers-modal-btn', function() {
+            var btn = $(this);
+            var id = btn.data('id');
+            var name = btn.data('name');
+
+            $('#targetFreeReturnClientId').val(id);
+            $('#labelFreeReturnClientName').text(name);
+            $('#formSubmitFreeCasierReturn').find('input[type="number"]').val(0); // Reset à 0
+
+            $('#modalFreeCasierReturn').modal('show');
+        });
+
+        // 2. Envoi asynchrone AJAX des lignes de retours
+        $('#formSubmitFreeCasierReturn').on('submit', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            var btn = $('#btnSubmitFreeReturnProcess');
+
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Traitement...');
+
+            $.ajax({
+                url: '/Distrib237/caissier/clients/retour-libre',
+                type: 'POST',
+                data: form.serialize() + '&_token=' + $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val(),
+                success: function(response) {
+                    if (response.success) {
+                        $('#modalFreeCasierReturn').modal('hide');
+                        location.reload(); // Actualise pour mettre à jour la colonne des bilans
+                    }
+                },
+                error: function(xhr) {
+                    btn.prop('disabled', false).html('<i class="bi bi-check2-all me-1"></i> Valider le déchargement');
+                    alert("Échec : " + (xhr.responseJSON?.message || "Erreur lors du dépôt d'emballages."));
+                }
+            });
+        });
     });
 
 </script>

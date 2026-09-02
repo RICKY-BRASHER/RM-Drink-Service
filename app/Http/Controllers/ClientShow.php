@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 class ClientShow extends Controller
 {
     public function showaccueil()
@@ -98,6 +100,10 @@ class ClientShow extends Controller
 
         // Envoi de la variable $achats à la vue suivie
         return view('layout.client.suivie', compact('achats'));
+    }
+
+    public function shownotif(){
+        return view("layout.client.notif");
     }
 
     public function ajouterAuPanierBrouillon(Request $request)
@@ -308,4 +314,66 @@ class ClientShow extends Controller
             return response()->json(['success' => false, 'message' => "Erreur serveur : " . $e->getMessage()], 500);
         }
     }
+
+    public function modifierMotDePasseClient(Request $request)
+    {
+        // 1. Règles de validation haut de gamme conformes à tes critères
+        $request->validate([
+            'old_password' => 'required',
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)->letters()->numbers(), // Minimum 8 caractères + Lettre + Chiffre (anti-facile)
+            ],
+        ], [
+            'password.confirmed' => 'La confirmation du nouveau mot de passe ne correspond pas.',
+            'password.min' => 'Le nouveau mot de passe doit contenir au moins 8 caractères.',
+        ]);
+
+        try {
+            // Récupération de l'instance de l'utilisateur avec sa clé réelle id_u
+            $client = auth()->user();
+
+            // 2. Vérification A : L'ancien mot de passe saisi est-il correct ?
+            if (!Hash::check($request->input('old_password'), $client->mdp_u)) {
+                return response()->json([
+                    'errors' => ['old_password' => ["L'ancien mot de passe est incorrect."]]
+                ], 422);
+            }
+
+            // 3. Vérification B : Le nouveau mot de passe est-il identique à l'ancien ?
+            if (Hash::check($request->input('password'), $client->mdp_u)) {
+                return response()->json([
+                    'errors' => ['password' => ["Le nouveau mot de passe ne peut pas être identique à l'actuel."]]
+                ], 422);
+            }
+
+            // 4. Validation et Cryptage (Bcrypt) du nouveau mot de passe dans la table users
+            DB::table('users')->where('id_u', $client->id_u)->update([
+                'mdp_u' => Hash::make($request->input('password')),
+                'updated_at' => now()
+            ]);
+
+            // 📱 Notification instantanée dans la cloche du smartphone du client
+            DB::table('notifications_systeme')->insert([
+                'user_id' => $client->id_u,
+                'depot_id' => $client->depot_id,
+                'titre_n' => "🔒 Sécurité : Accès mis à jour",
+                'message_n' => "Le mot de passe de votre compte de boisson Distrib237 a été modifié avec succès.",
+                'icone_n' => "bi-key-fill",
+                'couleur_n' => "text-warning",
+                'statut_lecture' => 'non_lu',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Vos clés d'accès ont été mises à jour avec succès !"
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => "Erreur système : " . $e->getMessage()], 500);
+        }
     }
+}

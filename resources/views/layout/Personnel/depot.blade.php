@@ -23,7 +23,7 @@
                     <div>
                         <strong class="d-block">Reussi !</strong>
                         <span>{{ session('success') }}</span>
-                    </div>
+                    </div> 
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
@@ -72,10 +72,39 @@
                     <span class="nav-icon">🪙</span> <span>Transaction Monetaire</span>
                 </a>
             @elseif(Auth::user()->role_u === 'employe')
-                <a href="{{ route('commandes') }}" class="menu-item {{ Route::is('commandes') ? 'active' : '' }}">
-                    <span class="nav-icon">📥</span> <span>Commandes</span>
+                <a href="{{ route('commandes') }}" class="menu-item {{ Route::is('commandes') ? 'active' : '' }} d-flex align-items-center justify-content-between w-100">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="nav-icon">📥</span> 
+                        <span>Commandes</span> 
+                    </div>
+                    
+                    <!-- 💡 LES COMPTEURS COMPACTS EN CERCLES STYLISÉS APP MOBILE -->
+                    <div class="d-flex align-items-center gap-1 pe-2">
+                        <!-- 🔴 Badge Rouge : Commandes mobiles reçues en ligne -->
+                        @if(isset($compteurWebEnvoyer) && $compteurWebEnvoyer > 0)
+                            <span class="badge rounded-circle bg-danger font-monospace d-flex align-items-center justify-content-center" 
+                                style="width: 18px; height: 18px; font-size: 0.68rem; font-weight: bold; padding: 0;" 
+                                title="{{ $compteurWebEnvoyer }} commande(s) mobile(s) reçue(s)">
+                                {{ $compteurWebEnvoyer }}
+                            </span>
+                        @endif
+
+                        <!-- 🟢 Badge Vert : Bons mis en attente financière au comptoir -->
+                        @if(isset($compteurComptoirAttente) && $compteurComptoirAttente > 0)
+                            <span class="badge rounded-circle bg-success font-monospace d-flex align-items-center justify-content-center" 
+                                style="width: 18px; height: 18px; font-size: 0.68rem; font-weight: bold; padding: 0;" 
+                                title="{{ $compteurComptoirAttente }} facture(s) en attente au comptoir">
+                                {{ $compteurComptoirAttente }}
+                            </span>
+                        @endif
+                    </div>
+                </a>
+                <a href="/Distrib237/caissier/livraisons" class="menu-item {{ Request::is('*livraison*') ? 'active' : '' }} d-flex align-items-center gap-2 w-100">
+                    <span class="nav-icon">🚚</span> 
+                    <span>Livraisons</span> 
                 </a>
             @endif
+
             <a href="{{ route('client') }}" class="menu-item {{ Route::is('client') ? 'active' : '' }}">
                 <span class="nav-icon">👥</span> <span>Clients</span>
             </a>
@@ -161,41 +190,50 @@
 
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-10 px-3 py-2 rounded-pill fw-bold small d-none d-sm-inline-block">
-                    🏢 Dépôt : {{ auth()->user()->depot_id ?? 'Super_Admin' }}
+                    <!-- 💡 AFFICHAGE DU NOM REEL DU DEPOT DEPUIS LA RELATION BDD -->
+                    🏢 Secteur : 
+                    @if(auth()->user()->role_u === 'admin')
+                        <span class="text-uppercase tracking-wider">Direction Générale</span>
+                    @else
+                        <span class="text-uppercase font-monospace">{{ auth()->user()->depot?->nom_depot ?? 'Dépôt Central' }}</span>
+                    @endif
                 </span>
+
                 
                 {{-- ==================================================================== --}}
                 {{-- 📱 BLOC 2 : CLOCHE DES NOTIFICATIONS MESSAGES & COMMANDES EN LIGNE   --}}
                 {{-- ==================================================================== --}}
                 <div class="dropdown">
-                    <!-- Remplacement du div simple par un bouton dropdown doté d'un compteur dynamique -->
-                    <button class="btn btn-light border position-relative rounded-circle p-2 topbar-icon-btn-custom" type="button" id="notifMessageBell" data-bs-toggle="dropdown" aria-expanded="false" style="width: 40px; height: 40px; border-radius: 50%;">
+                    <button class="btn btn-light border position-relative rounded-circle p-2 topbar-icon-btn-custom" 
+                            type="button" id="notifMessageBell" data-bs-toggle="dropdown" aria-expanded="false" 
+                            style="width: 40px; height: 40px; border-radius: 50%;">
                         <i class="bi bi-bell text-secondary"></i>
                         @if(count($notificationsMessages) > 0)
-                            <!-- 💡 LE NOUVEAU COMPTEUR DE NOTIFICATIONS COMPACT REÇUES ET NON LUES -->
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-primary border border-white" style="padding: 4px 6px; font-size: 0.65rem;">
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-primary border border-white" 
+                                style="padding: 4px 6px; font-size: 0.65rem;">
                                 {{ count($notificationsMessages) }}
                             </span>
                         @endif
                     </button>
+
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-2 rounded-3" aria-labelledby="notifMessageBell" style="width: 320px; font-size: 0.88rem;">
-                        <li class="dropdown-header fw-bold text-primary border-bottom pb-2 mb-2"><i class="bi bi-chat-left-text-fill"></i> MESSAGES & COMMANDES CLIENTS</li>
+                        <li class="dropdown-header fw-bold text-primary border-bottom pb-2 mb-2">
+                            <i class="bi bi-chat-left-text-fill"></i> MESSAGES & COMMANDES CLIENTS
+                        </li>
                         
                         <div style="max-height: 250px; overflow-y: auto;">
                             @forelse($notificationsMessages as $msg)
-                                <li class="p-2.5 bg-light rounded-3 mb-2 border border-secondary border-opacity-10">
+                                <li class="p-2.5 bg-light rounded-3 mb-2 border border-secondary border-opacity-10" data-id="{{ $msg->id_notif }}">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div class="pe-2">
                                             <strong class="{{ $msg->couleur_n }} text-uppercase d-block" style="font-size:0.78rem;">
                                                 <i class="bi {{ $msg->icone_n }} me-1"></i> {{ $msg->titre_n }}
                                             </strong>
                                             <span class="text-dark small d-block mt-1" style="font-size:0.8rem; line-height:1.2;">{{ $msg->message_n }}</span>
-                                            <small class="text-muted font-monospace mt-1 d-block" style="font-size:0.68rem;">{{ \Carbon\Carbon::parse($msg->created_at)->diffForHumans() }}</small>
+                                            <small class="text-muted font-monospace mt-1 d-block" style="font-size:0.68rem;">
+                                                {{ \Carbon\Carbon::parse($msg->created_at)->diffForHumans() }}
+                                            </small>
                                         </div>
-                                        <!-- Bouton d'extinction du message 
-                                        <button type="button" class="btn p-0 text-success dismiss-msg-btn" data-id="{{ $msg->id_notif }}" title="Marquer comme lu">
-                                            <i class="bi bi-check2-circle fs-5"></i>
-                                        </button>-->
                                     </div>
                                 </li>
                             @empty
@@ -207,11 +245,10 @@
                         </div>
                     </ul>
                 </div>
+
                 
                 <div class="topbar-icon-btn"><i class="bi bi-gear"></i></div>
-                <div class="topbar-avatar">
-                    <i class="bi bi-person-fill text-secondary"></i>
-                </div>
+                
             </div>
         </nav>
 
@@ -225,7 +262,9 @@
 
     <!-- Script global d'interaction de la Navbar Mobile -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.js" integrity="sha512-y5GdcvG8/LoqZllcaDnZKY4hKSDowG4vWAytStZ1AZ8sxgWke7KtkMx3G9KQU0Ih3kIDfY/3EO1sSyKGRxqwJQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js"></script>
     <script src="https://code.jquery.com/jquery-4.0.0.js" integrity="sha256-9fsHeVnKBvqh3FB2HYu7g2xseAZ5MlN6Kz/qnkASV8U=" crossorigin="anonymous"></script>
     <script>
@@ -253,43 +292,28 @@
                 }
             });
 
-            // 1. Marquer comme lue une alerte de stock technique
-            $(document).on('click', '.dismiss-stock-btn', function(e) {
-                e.stopPropagation();
-                var button = $(this);
-                var id = button.data('id');
-
-                $.ajax({
-                    url: '/Distrib237/caissier/marquer-alerte-lue/' + id,
-                    type: 'POST',
-                    data: { _token: $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val() },
-                    success: function(response) {
-                        if (response.success) {
-                            button.closest('li').fadeOut(200, function() { $(this).remove(); location.reload(); });
-                        }
-                    }
+            // Gestion de l'extinction des alertes de stock critiques
+            $('#notifMessageBell').on('show.bs.dropdown', function () {
+                let ids = [];
+                $('[data-id]').each(function () {
+                    ids.push($(this).data('id'));// Récupère tous les IDs des notifications affichées
                 });
-            });
 
-            // 2. Marquer comme lu un message système ou de commande
-            $(document).on('click', '.dismiss-msg-btn', function(e) {
-                e.stopPropagation();
-                var button = $(this);
-                var id = button.data('id');
-
-                $.ajax({
-                    url: '/Distrib237/notification/marquer-lue/' + id,
-                    type: 'POST',
-                    data: { _token: $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val() },
-                    success: function(response) {
-                        if (response.success) {
-                            button.closest('li').fadeOut(200, function() { $(this).remove(); location.reload(); });
+                if (ids.length > 0) {
+                    $.ajax({
+                        url: '/notifications/mark-as-read',
+                        type: 'POST',
+                        data: {
+                            ids: ids,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function () {
+                            // Supprimer le badge visuellement
+                            $('#notifMessageBell .badge').remove();
                         }
-                    }
-                });
+                    });
+                }
             });
-
-
         });
 
     </script>

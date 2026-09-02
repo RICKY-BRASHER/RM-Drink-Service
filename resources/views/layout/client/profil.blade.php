@@ -137,7 +137,7 @@
 
 </div>
 
-<!-- 📦 MODAL DE CHANGEMENT DE MOT DE PASSE SECRET -->
+<!-- 📦 MODAL DE CHANGEMENT DE MOT DE PASSE AVEC ŒIL INTERACTIF -->
 <div class="modal fade" id="passwordChangeModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm px-3">
         <div class="modal-content dark-modal-content" style="background-color: #111111; border: 1px solid #1f2022; color: white; border-radius: 20px;">
@@ -147,20 +147,47 @@
             </div>
             <div class="modal-body py-3">
                 <form id="profilePasswordSubmitForm">
+                    
+                    <!-- Champ 1 : Ancien Password -->
                     <div class="mb-3">
                         <label class="form-label small fw-bold" style="color: #71767b;">Ancien mot de passe :</label>
-                        <input type="password" name="old_password" class="form-control text-center fw-bold bg-dark text-white" placeholder="••••••••" style="border-color: rgba(255,255,255,0.1) !important;" required>
+                        <div class="input-group">
+                            <input type="password" id="old_password" name="old_password" class="form-control text-center fw-bold bg-dark text-white border-end-0" placeholder="••••••••" style="border-color: rgba(255,255,255,0.1) !important; border-top-left-radius: 10px; border-bottom-left-radius: 10px;" required>
+                            <span class="input-group-text bg-dark toggle-password-visibility" data-target="#old_password" style="border-color: rgba(255,255,255,0.1) !important; color: #71767b; cursor: pointer; border-top-right-radius: 10px; border-bottom-right-radius: 10px;">
+                                <i class="bi bi-eye"></i>
+                            </span>
+                        </div>
                     </div>
+
+                    <!-- Champ 2 : Nouveau Password -->
                     <div class="mb-3">
                         <label class="form-label small fw-bold" style="color: #71767b;">Nouveau mot de passe :</label>
-                        <input type="password" name="password" class="form-control text-center fw-bold bg-dark text-white" placeholder="••••••••" style="border-color: rgba(255,255,255,0.1) !important;" required>
+                        <div class="input-group">
+                            <input type="password" id="password" name="password" class="form-control text-center fw-bold bg-dark text-white border-end-0" placeholder="••••••••" style="border-color: rgba(255,255,255,0.1) !important; border-top-left-radius: 10px; border-bottom-left-radius: 10px;" required>
+                            <span class="input-group-text bg-dark toggle-password-visibility" data-target="#password" style="border-color: rgba(255,255,255,0.1) !important; color: #71767b; cursor: pointer; border-top-right-radius: 10px; border-bottom-right-radius: 10px;">
+                                <i class="bi bi-eye"></i>
+                            </span>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold" style="border-radius: 12px;">Mettre à jour mes accès</button>
+
+                    <!-- Champ 3 : Confirmation -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold" style="color: #71767b;">Confirmer le nouveau mot de passe :</label>
+                        <div class="input-group">
+                            <input type="password" id="password_confirmation" name="password_confirmation" class="form-control text-center fw-bold bg-dark text-white border-end-0" placeholder="••••••••" style="border-color: rgba(255,255,255,0.1) !important; border-top-left-radius: 10px; border-bottom-left-radius: 10px;" required>
+                            <span class="input-group-text bg-dark toggle-password-visibility" data-target="#password_confirmation" style="border-color: rgba(255,255,255,0.1) !important; color: #71767b; cursor: pointer; border-top-right-radius: 10px; border-bottom-right-radius: 10px;">
+                                <i class="bi bi-eye"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold mt-2" style="border-radius: 12px;">Mettre à jour mes accès</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
 @endsection
 
 @push('scripts')
@@ -194,6 +221,93 @@ $(document).ready(function() {
     // Déclenchement de la modal
     $('#triggerPasswordModalBtn').on('click', function() {
         $('#passwordChangeModal').modal('show');
+    });
+
+        // ====================================================================
+    // 🔐 SÉCURITÉ : CHANGEMENT DE MOT DE PASSE EN AJAX (FINTECH DARK)
+    // ====================================================================
+    $('#profilePasswordSubmitForm').on('submit', function(e) {
+        e.preventDefault(); // Évite le rechargement de la page mobile
+
+        var form = $(this);
+        var formData = form.serialize(); // Prépare les données saisies
+
+        // Animation d'attente SweetAlert2
+        Swal.fire({
+            title: 'Changement de clé...',
+            text: 'Cryptage de vos nouveaux accès en cours.',
+            width: '310px',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.ajax({
+            url: '/Distrib237/client/modifier-mot-de-passe',
+            type: 'POST',
+            data: formData + '&_token=' + $('meta[name="csrf-token"]').attr('content'),
+            success: function(response) {
+                if (response.success) {
+                    Swal.close();
+                    
+                    // On vide les champs du formulaire pour la sécurité
+                    form[0].reset();
+                    
+                    // On ferme la modal Bootstrap
+                    $('#passwordChangeModal').modal('hide');
+
+                    // Alerte de confirmation de succès
+                    Swal.fire({
+                        title: 'Sécurisé ! 🔐',
+                        text: response.message,
+                        icon: 'success',
+                        width: '310px',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+            },
+            error: function(xhr) {
+                // Interception des erreurs de validation (ex: trop court, identique à l'ancien, etc.)
+                var message = "Erreur de mise à jour.";
+                if (xhr.status === 422) {
+                    var errors = xhr.responseJSON.errors;
+                    // Récupère le premier message d'erreur de la liste
+                    message = Object.values(errors)[0][0];
+                } else {
+                    message = xhr.responseJSON?.message || "Impossible de modifier vos accès.";
+                }
+
+                Swal.fire({
+                    title: 'Échec ❌',
+                    text: message,
+                    icon: 'error',
+                    width: '310px'
+                });
+            }
+        });
+    });
+
+        // ====================================================================
+    // 👀 INTERACTION TACTILE : VOIR / MASQUER LE MOT DE PASSE SUR MOBILE
+    // ====================================================================
+    $(document).on('click', '.toggle-password-visibility', function() {
+        var iconBtn = $(this);
+        var icon = iconBtn.find('i');
+        
+        // On récupère l'identifiant du champ ciblé (ex: #password)
+        var targetSelector = iconBtn.data('target');
+        var inputField = $(targetSelector);
+
+        // Permutation de l'attribut type du champ HTML
+        if (inputField.attr('type') === 'password') {
+            inputField.attr('type', 'text'); // Affiche le texte clair
+            icon.removeClass('bi-eye').addClass('bi-eye-slash'); // Barre l'œil
+            iconBtn.css('color', '#0052ff'); // Allume l'œil en Bleu Électrique
+        } else {
+            inputField.attr('type', 'password'); // Masque à nouveau avec des points
+            icon.removeClass('bi-eye-slash').addClass('bi-eye');
+            iconBtn.css('color', '#71767b'); // Éteint l'œil en gris neutre
+        }
     });
 
     // 🚪 ÉCOUTEUR DE DÉCONNEXION INTERACTIF (SWEETALERT2 CHIRURGICAL MOBILE)

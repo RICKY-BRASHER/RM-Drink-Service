@@ -31,9 +31,9 @@ return new class extends Migration
             $table->timestamps(); // Génère automatiquement created_at (Date et heure exacte)
 
             // Liaisons de sécurité avec vos tables existantes
-            $table->foreign('client_id')->references('id_u')->on('users')->onDelete('cascade');
-            $table->foreign('employe_id')->references('id_u')->on('users')->onDelete('cascade');
-            $table->foreign('vente_id')->references('id')->on('ventes')->onDelete('set null');
+            $table->foreign('client_id')->references('id_u')->on('users')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('employe_id')->references('id_u')->on('users')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreign('vente_id')->references('id')->on('ventes')->onDelete('restrict')->onUpdate('cascade');
         });
     }
 

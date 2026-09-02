@@ -18,9 +18,9 @@ return new class extends Migration
             $table->bigInteger('depot_id')->unsigned();
             $table->integer('total_boissons')->default(0); // Nb total de blles reçues
             $table->timestamps(); // Date et heure de livraison (created_at)
-            $table->foreign('id_u_admin')->references('id_u')->on('users')->onDelete('cascade'); //  
-            $table->foreign('id_fournisseur')->references('id_fournisseur')->on('fournisseurs')->onDelete('cascade');
-            $table->foreign('depot_id')->references('id')->on('depots')->onDelete('cascade');
+            $table->foreign('id_u_admin')->references('id_u')->on('users')->onDelete('restrict')->onUpdate('cascade'); //  
+            $table->foreign('id_fournisseur')->references('id_fournisseur')->on('fournisseurs')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('depot_id')->references('id')->on('depots')->onDelete('restrict')->onUpdate('cascade');
         });
     }
 

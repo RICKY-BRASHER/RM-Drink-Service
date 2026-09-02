@@ -11,8 +11,8 @@ return new class extends Migration
         Schema::create('notifications_systeme', function (Blueprint $table) {
             $table->id('id_notif');
             // Colonnes configurées en nullable() selon votre SQL
-            $table->foreignId('user_id')->nullable()->constrained('users', 'id_u')->onDelete('cascade');
-            $table->foreignId('depot_id')->nullable()->constrained('depots', 'id')->onDelete('cascade');
+            $table->foreignId('user_id')->nullable()->constrained('users', 'id_u')->onDelete('restrict')->onUpdate('cascade');
+            $table->foreignId('depot_id')->nullable()->constrained('depots', 'id')->onDelete('restrict')->onUpdate('cascade');
             $table->string('titre_n', 150);
             $table->text('message_n');
             $table->string('icone_n', 50)->default('bi-bell-fill');

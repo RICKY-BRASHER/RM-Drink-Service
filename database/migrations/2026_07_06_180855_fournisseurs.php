@@ -15,6 +15,8 @@ return new class extends Migration
         Schema::create("fournisseurs", function (Blueprint $table) {
             $table->id("id_fournisseur");
             $table->string("nom_fournisseur", 100);
+            $table->integer('stock_vides_f')->default(0);
+            $table->timestamps();
         });
         // Insertion de données initiales dans la table "fournisseurs" 
         DB::table("fournisseurs")->insert([

@@ -26,7 +26,7 @@
                         <h4 class="fw-bold m-0 font-monospace text-dark">{{ number_format($caGlobalJour, 0, ',', ' ') }} F</h4>
                     </div>
                 </div>
-            </div>
+            </div>  
         </div>
         <!-- CA Mensuel Global -->
         <div class="col-sm-6 col-xl-3">
@@ -161,7 +161,16 @@
                                         <strong class="text-dark text-uppercase d-block">{{ $acheteur->nom_u }}</strong>
                                         <small class="text-muted font-monospace">Tél: +237 {{ $acheteur->tel_u }}</small>
                                     </td>
-                                    <td><span class="badge bg-light text-dark border px-2.5 py-1 rounded-3 uppercase fw-bold"><i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ $acheteur->nom_depot }}</span></td>
+                                    <!-- 4. vert si solde positif et rouge si négatif -->
+                                    <td>
+                                        @if($acheteur->solde_u < 0)
+                                            <span class="badge bg-danger text-white border px-2.5 py-1 rounded-3 uppercase fw-bold"><i class="bi bi-geo-alt-fill text-white me-1"></i>{{ $acheteur->nom_depot }}</span>
+                                        @elseif($acheteur->solde_u > 0)
+                                            <span class="badge bg-success text-white border px-2.5 py-1 rounded-3 uppercase fw-bold"><i class="bi bi-geo-alt-fill text-white me-1"></i>{{ $acheteur->nom_depot }}</span>
+                                        @else
+                                            <span class="badge bg-secondary text-white border px-2.5 py-1 rounded-3 uppercase fw-bold"><i class="bi bi-geo-alt-fill text-white me-1"></i>{{ $acheteur->nom_depot }}</span>
+                                        @endif
+                                    </td>
                                     <!-- 4. Nombre de bons facturés -->
                                     <td class="text-center font-monospace fw-semibold">
                                         {{ $acheteur->total_factures }} Achats

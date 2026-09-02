@@ -83,7 +83,7 @@
                                             </button>
 
                                             <!-- Ton bouton vert d'encaissement d'origine -->
-                                            <button type="button" class="btn btn-icon btn-light border btn-sm rounded-3 process-order-btn text-success border-success" 
+                                            <button type="button" class="btn btn-icon btn-light border btn-sm rounded-3 valid-order-btn text-success border-success" 
                                                     data-id="{{ $commande->id }}"
                                                     data-code="{{ $commande->code_facture }}"
                                                     data-total="{{ $commande->montant_total }}"
@@ -94,7 +94,7 @@
                                             </button>
 
                                             <!-- Ton bouton rouge d'annulation d'origine -->
-                                            <button type="button" class="btn btn-icon btn-light border btn-sm rounded-3 reject-order-btn text-danger border-danger" data-id="{{ $commande->id }}" data-code="{{ $commande->code_facture }}">
+                                            <button type="button" class="btn btn-icon btn-light border btn-sm rounded-3 del-order-btn text-danger border-danger" data-id="{{ $commande->id }}" data-code="{{ $commande->code_facture }}">
                                                 <i class="bi bi-x-circle-fill"></i>
                                             </button>
                                         </div>
@@ -360,10 +360,66 @@ $(document).ready(function() {
     });
 
 
-function futurSoldeCalculeText(solde, avance, total) {
+    function futurSoldeCalculeText(solde, avance, total) {
         return "calculé en direct par la caisse";
     }
+    $(document).on('click', '.valid-order-btn', function(){
+        var id = $(this).data('id');
+        $.ajax({
+            url: '/gestion/commandes-recu/traiter/' + id,
+            type: 'POST',
+            data: {
+                _token: $('input[name="_token"]').val(),
+                action: 'valider',
+            },
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire('Succès !', response.message, 'success');
+                    $('#orderRow_' + id).fadeOut(300);
+                    setTimeout(function() { location.reload(); }, 1000);
+                }
+            },
+            error: function(xhr) {
+                Swal.fire('Échec', xhr.responseJSON?.message || 'Erreur de caisse', 'error');
+            }
+        });
+    });
 
+    $(document).on('click', '.del-order-btn', function() {
+
+        var id = $(this).data('id');
+        var code = $(this).data('code');
+
+        Swal.fire({
+            title: '🗑️ Supprimer la commande ' + code + ' ?',
+            text: "Une Notification sera envoye au client pour l'informer de l'annulation de son bon.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Oui, annuler sa commande',
+            cancelButtonText: 'Ignorer',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/gestion/commandes-recu/traiter/' + id,
+                    type: 'POST',
+                    data: {
+                        _token: $('input[name="_token"]').val(),
+                        action: 'refuser'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire('Annulée !', response.message, 'success');
+                            $('#orderRow_' + id).fadeOut(300, function() { $(this).remove(); });
+                            setTimeout(function() { location.reload(); }, 1000);
+                        }
+                    }
+                });
+            }
+        });
+    });
     // ==========================================
     // ACTION B : CLIC SUR LE BOUTON REFUSER / ANNULER
     // ==========================================
@@ -395,7 +451,7 @@ function futurSoldeCalculeText(solde, avance, total) {
                         if (response.success) {
                             Swal.fire('Annulée !', response.message, 'success');
                             $('#orderRow_' + id).fadeOut(300, function() { $(this).remove(); });
-                            setTimeout(function() { location.reload(); }, 1200);
+                            setTimeout(function() { location.reload(); }, 1000);
                         }
                     }
                 });
@@ -598,13 +654,6 @@ function futurSoldeCalculeText(solde, avance, total) {
             success: function(response) {
                 if (response.success) {
                     $('#editClientOrderModal').modal('hide');
-
-                    // Synchronisation du bouton financier d'origine
-                    var processBtn = $('.process-order-btn[data-id="' + activeEditOrderId + '"]');
-                    processBtn.attr('data-total', response.nouveau_total);
-                    
-                    // Déclenche de force votre pop-up d'encaissement initial SweetAlert2 !
-                    processBtn.trigger('click');
                 }
             },
             error: function(xhr) {

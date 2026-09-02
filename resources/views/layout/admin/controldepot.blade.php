@@ -218,13 +218,39 @@
             var $card = $('#branchCard_' + id);
             var branchName = $card.find('.branch-title-text').text();
 
+            // Ton confirm() d'origine conservé intact
             if (confirm("Êtes-vous sûr de vouloir supprimer définitivement le [ " + branchName + " ] du réseau commercial ?")) {
-                $card.fadeOut(500, function() {
-                    $(this).remove();
-                    alert("Succès : Dépôt déconnecté et archivé en local.");
+                
+                // 💡 INTEGRATION DE LA REQUÊTE COMPTABLE AJAX
+                $.ajax({
+                    url: '/Distrib237/admin/depots/supprimer/' + id,
+                    type: 'POST',
+                    data: {
+                        // Récupération automatique du jeton CSRF de sécurité Laravel
+                        _token: $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Ton animation de disparition d'origine s'exécute si la BDD a validé
+                            $card.fadeOut(500, function() { 
+                                $(this).remove();
+                                var toastEl = document.getElementById('registerSuccessToast');
+                                var toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+                                const toastMessage = toast.querySelector('span');
+                                toastMessage.textContent = response.message || "Le dépôt a été supprimé avec succès.";
+                                toast.show();
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        // Alerte en cas de problème (ex: dépôt introuvable ou erreur serveur)
+                        alert("Échec : " + (xhr.responseJSON?.message || "Erreur de communication avec le serveur."));
+                    }
                 });
+
             }
         });
+
 
         // 4. Gestion de la somisssion pour creation et  modification d'un depot
         $('#branchConfigForm').on('submit', function(e) {

@@ -1,12 +1,16 @@
 <?php
 use App\Http\Controllers\ClientShow;
+use App\Http\Controllers\Livraison;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Authentification;
 use App\Http\Controllers\Pagecontrol;
 use App\Http\Controllers\Workstocksell;
+use App\Http\Controllers\DeleteOpt;
 use App\Http\Controllers\PagePersonnel;
 use App\Http\Controllers\ActionAdd;
+use App\Http\Controllers\NotificationController;
+
 
 // ==========================================
 // 1. ROUTES SÉCURISÉES DE LA DIRECTION (ADMIN)
@@ -27,6 +31,7 @@ Route::middleware(['is_admin'])->group(function () {
         Route::delete('/gestion/caisse/annuler-brouillon/{id}', [Workstocksell::class, 'annulerBrouillon']);
         // Route AJAX unique pour traiter la validation ou le refus
         Route::post('/gestion/commandes-attente/traiter/{id}', [Workstocksell::class, 'traiterCommandeEnAttente']);
+        Route::post('/gestion/commandes-recu/traiter/{id}', [Workstocksell::class, 'receptionnerCommandeEnLigne']);
         Route::get('/gestion/caisse/imprimer-pdf/{id}', [Workstocksell::class, 'telechargerFacture'])->name('facture.pdf');
 
         Route::get('/Distrib237/secretariat/commande/recuperer-edition/{id}', [Workstocksell::class, 'recupererDonneesModification']);
@@ -34,6 +39,15 @@ Route::middleware(['is_admin'])->group(function () {
         Route::post('/Distrib237/secretariat/commande/sauvegarder-ajustements/{id}', [Workstocksell::class, 'sauvegarderAjustements']);
         Route::get('/gestion/produit', [PagePersonnel::class, 'showpageproduit'])->name('produit');
         Route::post('/admin/produit/store', [ActionAdd::class, 'addmodproduit'])->name('produit.store');
+
+        // 🚚 GESTION CENTRALISÉE DES LIVRAISONS & REPRISES D'EMBALLAGES
+        Route::get('/Distrib237/caissier/livraisons', [Livraison::class, 'indexLivraisons'])->name('livraison');
+        Route::post('/Distrib237/caissier/livraisons/valider/{id}', [Livraison::class, 'validerLivraisonEtRetourCasiers']);
+        Route::post('/Distrib237/caissier/clients/retour-libre', [Livraison::class, 'enregistrerRetourLibreCasiers']);
+
+
+        
+
 
 
     });
@@ -52,16 +66,16 @@ Route::middleware(['is_admin'])->group(function () {
         Route::get('/gestion/fournisseur/{id}/depots-disponibles', [Workstocksell::class, 'getDepotsFournisseur']);
          // 2. Pour charger la liste propre des boissons du fournisseur pour ce dépôt précis
         Route::get('/gestion/fournisseur/{id_f}/depot/{id_d}/produits', [Workstocksell::class, 'getProduitsFiltres']);
+        Route::post('/Distrib237/admin/depots/supprimer/{id}', [DeleteOpt::class, 'detruireDepotPhysique']);
+        Route::post('/Distrib237/admin/utilisateurs/supprimer/{id}', [DeleteOpt::class, 'deleteuser']);
+        Route::post('/Distrib237/admin/produits/supprimer/{id}', [DeleteOpt::class, 'deleteproduit']);
     });
 
     Route::get('/gestion/client', [PagePersonnel::class, 'showpageclient'])->name('client');
     Route::get('/gestion/historique', [PagePersonnel::class, 'showpagehistorique'])->name('historique');
     Route::get('/gestion/stock', [PagePersonnel::class, 'showpagestock'])->name('stock'); 
-    // Route d'extinction du bloc des stocks
-    Route::post('/Distrib237/caissier/marquer-alerte-lue/{id}', function($id) {
-        \Illuminate\Support\Facades\DB::table('alertes_stocks')->where('id_alerte', $id)->update(['statut_lecture' => 'lu']);
-        return response()->json(['success' => true]);
-    });
+    Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+
 
     
 
@@ -77,11 +91,14 @@ Route::middleware(['is_client'])->group(function () {
     Route::get('/Distrib237/client/accueil', [ClientShow::class,'showaccueil'])->name('client.accueil');
     Route::get('/Distrib237/client/suivie', [ClientShow::class,'showsuivie'])->name('client.suivie');
     Route::get('/Distrib237/client/profil', [ClientShow::class,'showprofil'])->name('client.profil');
+    Route::get('/Distrib237/client/notifications', [ClientShow::class,'shownotif'])->name('client.notifications');
     Route::post('/Distrib237/client/ajouter-brouillon', [ClientShow::class, 'ajouterAuPanierBrouillon'])->name('client.ajout.produit');
     Route::delete('/Distrib237/client/supprimer-produit/{id}', [ClientShow::class, 'supprimerDuPanier'])->name('client.supprimer.produit');
     Route::post('/Distrib237/client/finaliser-panier', [ClientShow::class, 'finaliserPanierEnvoyer'])->name('client.finaliser.produit');
     Route::get('/Distrib237/client/recuperer-details-bon/{id}', [ClientShow::class, 'recupererDetailsBon']);
     Route::post('/Distrib237/client/modifier-avatar', [ClientShow::class, 'modifierAvatarClient']);
+    Route::post('/Distrib237/client/modifier-mot-de-passe', [ClientShow::class, 'modifierMotDePasseClient']);
+
 
 });
 

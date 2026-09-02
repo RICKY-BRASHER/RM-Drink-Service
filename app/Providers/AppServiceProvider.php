@@ -68,7 +68,7 @@ class AppServiceProvider extends ServiceProvider
                         $notificationsMessages = DB::table('notifications_systeme')
                             ->where('statut_lecture', 'non_lu')
                             ->orderBy('created_at', 'desc')
-                            ->get();
+                            ->get();                        
                     } elseif ($user->role_u === 'employe') {
                         $notificationsMessages = DB::table('notifications_systeme')
                             ->where('depot_id', $user->depot_id)
@@ -85,13 +85,33 @@ class AppServiceProvider extends ServiceProvider
                     }
                 }
 
+
+                // 1. Nombre de commandes Web reçues (Statut 'envoyer') pour son dépôt
+                $compteurWebEnvoyer = DB::table('ventes')
+                    ->join('users', 'ventes.client_id', '=', 'users.id_u')
+                    ->where('users.depot_id', $user->depot_id)
+                    ->where('ventes.statut', 'envoyer')
+                    ->count();
+
+                // 2. Nombre de factures au comptoir en attente de paiement (Statut 'attente') pour son dépôt
+                $compteurComptoirAttente = DB::table('ventes')
+                    ->join('users', 'ventes.client_id', '=', 'users.id_u')
+                    ->where('users.depot_id', $user->depot_id)
+                    ->where('ventes.statut', 'attente')
+                    ->count();
+
+                // On partage ces compteurs avec les vues Blade
+                $view->with('compteurWebEnvoyer', $compteurWebEnvoyer);
+                $view->with('compteurComptoirAttente', $compteurComptoirAttente);
                 // Envoi des deux flux indépendants aux structures HTML
                 $view->with('notificationsAlertes', $notificationsAlertes);
                 $view->with('notificationsMessages', $notificationsMessages);
 
             } else {
-                $view->with('notificationsAlertes', collect());
+                $view->with('notificationsAlertes', collect());// Si l'utilisateur n'est pas connecté, on renvoie des collections vides
                 $view->with('notificationsMessages', collect());
+                $view->with('compteurWebEnvoyer', 0);
+                $view->with('compteurComptoirAttente', 0);
             }
         });
         $this->configureDefaults();

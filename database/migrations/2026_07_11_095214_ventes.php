@@ -22,15 +22,16 @@ return new class extends Migration
             $table->enum('mode_paiement', ['Espece', 'OM-MOMO', 'Epargne']);
 
             // Statut : payée ou en attente
-            $table->enum('statut', ['draft','payer', 'envoyer','attente','annuler'])->default('draft');
-
+            $table->enum('statut', ['draft','payer', 'envoyer','attente','annuler','livrer'])->default('draft');
+            $table->integer('retour_casiers')->default(0);
             $table->timestamps();
 
             $table->foreign('client_id')
                 ->references('id_u')
                 ->on('users')
-                ->onDelete('set null');
-            $table->foreign('employe_id')->references('id_u')->on('users')->onDelete('cascade');
+                ->onDelete('set null')
+                ->onUpdate('cascade');
+            $table->foreign('employe_id')->references('id_u')->on('users')->onDelete('restrict')->onUpdate('cascade');
         });
 
 

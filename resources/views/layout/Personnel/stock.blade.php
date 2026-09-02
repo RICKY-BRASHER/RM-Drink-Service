@@ -113,6 +113,9 @@
                                 <!-- 💡 Détermination dynamique de l'état critique du stock -->
                                 @php 
                                     $isLowStock = $produit->quantite_p <= ($produit->seuil ?? 15);
+                                    // si la moitier du stock est inferieur ou egale au seuil, on considere que le stock est presque vide
+                                   $isAlmostEmpty = ($produit->quantite_p / 2) <= ($produit->seuil ?? 15);
+                                    
                                 @endphp
 
                                 <tr class="stock-row align-middle" data-depot="{{ $slugDepot }}" id="stockRow_{{ $produit->id_produit }}">
@@ -171,6 +174,10 @@
                                         @if($isLowStock)
                                             <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10 py-1.5 px-3 rounded-pill fw-bold small">
                                                 <i class="bi bi-exclamation-triangle-fill me-1"></i> Stock Faible
+                                            </span>
+                                        @elseif($isAlmostEmpty)
+                                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-10 py-1.5 px-3 rounded-pill fw-bold small">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Attention
                                             </span>
                                         @else
                                             <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 py-1.5 px-3 rounded-pill fw-bold small">
@@ -575,9 +582,9 @@
 
             });
         });
-        // 5. ENVOI DU BON D'APPROVISIONNEMENT VIA AJAX
-    // 5. SOUMISSION AVEC ÉCRAN DE BILAN ET CONFIRMATION PRO (SweetAlert2)
-    $('#restockForm').on('submit', function(e) {
+        
+        // 6. SOUMISSION AVEC ÉCRAN DE BILAN ET CONFIRMATION PRO (SweetAlert2)
+        $('#restockForm').on('submit', function(e) {
         e.preventDefault(); // Bloque l'envoi immédiat
 
         var form = $(this);
@@ -603,7 +610,7 @@
                 listeBilanHTML += `
                     <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom border-secondary border-opacity-10 small">
                         <span class="text-dark fw-medium uppercase">${nomBoisson} <small class="text-muted">(${formatBoisson})</small></span>
-                        <span class="font-monospace fw-bold text-success">+ ${qty} blles</span>
+                        <span class="font-monospace fw-bold text-success">+ ${qty} cs/u</span>
                     </div>`;
             }
         });
@@ -630,7 +637,7 @@
                 </div>
                 ${listeBilanHTML}
                 <div class="text-end mt-3">
-                    <span class="fs-6 text-dark fw-bold">Volume Total : <span class="text-primary font-monospace">${totalBouteilles} blles</span></span>
+                    <span class="fs-6 text-dark fw-bold">Volume Total : <span class="text-primary font-monospace">${totalBouteilles} produits</span></span>
                 </div>
             `,
             icon: 'info',
@@ -653,23 +660,12 @@
                     data: form.serialize(),
                     success: function(response) {
                         if (response.success) {
-                            
-                            // Alerte finale de succès très esthétique
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Enregistré !',
-                                text: response.message,
-                                timer: 1500,
-                                showConfirmButton: false
-                            });
- 
-                            // Fermeture du modal Bootstrap
                             $('#stockModal').modal('hide');
 
                             // Rafraîchissement automatique de la page pour actualiser la table de stock
                             setTimeout(function() {
                                 location.reload();
-                            }, 1500);
+                            }, 1000);
                         }
                     },
                     error: function(xhr) {
@@ -688,8 +684,54 @@
             }
         });
     });
+        // 7. SUPPRESSION D'UNE BOISSON (ADMIN UNIQUEMENT)
+        $(document).on('click', '.delete-product-btn', function() {
+            var productId = $(this).data('id');
+            var row = $(this).closest('tr');
 
-
+            Swal.fire({
+                title: '⚠️ Confirmer la suppression',
+                text: "Cette action est irréversible. Êtes-vous sûr de vouloir supprimer cette boisson ?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Oui, supprimer',
+                cancelButtonText: 'Annuler'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/Distrib237/admin/produits/supprimer/' + productId,
+                        type: 'POST',
+                        data: {
+                            _token: $('input[name="_token"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                row.fadeOut(300, function() {
+                                    $(this).remove();
+                                    updatePageTabCounts(); // Met à jour le compteur après suppression
+                                    var toastEl = document.getElementById('registerSuccessToast');
+                                    var toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+                                    var toastMessage = toastEl.querySelector('span');
+                                    toastMessage.textContent = response.message || "L'agent a été supprimé avec succès.";
+                                    toast.show();
+                                    
+                                });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Erreur',
+                                text: xhr.responseJSON?.message || "Une erreur est survenue.",
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    });
+                }
+            });
+        });
 
     });
 

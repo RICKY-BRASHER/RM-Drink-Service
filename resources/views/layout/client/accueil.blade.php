@@ -41,7 +41,7 @@
             <div class="text-end">
                 <span class="card-label-small d-block">Identifiant Unique</span>
                 <!-- Extraction sécurisée des 4 derniers chiffres du numéro de téléphone -->
-                <span class="font-monospace text-white fw-bold" style="font-size: 0.85rem;">•••• {{ substr($client->tel_u, -4) }}</span>
+                <span class="font-monospace text-white fw-bold" style="font-size: 0.85rem;">•••• {{ substr($client->id_u, -4) }}</span>
             </div>
         </div>
     </div>

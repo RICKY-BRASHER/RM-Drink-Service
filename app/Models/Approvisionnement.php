@@ -41,7 +41,7 @@ class Approvisionnement extends Model
      */
     public function details(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(DetailApprovisionnement::class, 'approvisionnement_id', 'id_app');
+        return $this->hasMany(Details_approvisionnement::class, 'approvisionnement_id', 'id_app');
     }
 
     /**

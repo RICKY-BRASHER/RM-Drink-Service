@@ -61,6 +61,32 @@ class PagePersonnel extends Controller
         // 📦 SECTION B : RÉSUMÉ DES STOCKS & INVENTAIRE LOCAL
         // ----------------------------------------------------------------
         
+        $depotId = auth()->user()->depot_id;
+
+        // 1. Somme des casiers de 12 bouteilles (Ex: format_p contient '12' ou 'casier 12')
+        $stockCasiers12 = DB::table('produits')
+            ->where('depot_id', $depotId)
+            ->where(function($query) {
+                $query->where('format_p', 'LIKE', '%12%')
+                      ->orWhere('format_p', 'LIKE', '%casier%');
+            })
+            ->sum('quantite_p');
+
+        // 2. Somme des casiers de 24 bouteilles (Ex: format_p contient '24')
+        $stockCasiers24 = DB::table('produits')
+            ->where('depot_id', $depotId)
+            ->where('format_p', 'LIKE', '%24%')
+            ->sum('quantite_p');
+
+        // 3. Somme des bidons / fûts / PET (Ex: format_p contient 'bidon', 'fut' ou 'pet')
+        $stockBidonsEtAutres = DB::table('produits')
+            ->where('depot_id', $depotId)
+            ->where(function($query) {
+                $query->where('format_p', 'LIKE', '%bidon%')
+                      ->orWhere('format_p', 'LIKE', '%fut%')
+                      ->orWhere('format_p', 'LIKE', '%pack%');
+            })
+            ->sum('quantite_p');
         // 5. Quantité totale de boissons actuellement en rayon au dépôt
         $totalStockPhysique = DB::table('produits')
             ->where('depot_id', $depotId)
@@ -102,15 +128,37 @@ class PagePersonnel extends Controller
             ->get();
 
         // ----------------------------------------------------------------
-        // 📈 SECTION D : CHIFFRE D'AFFAIRES MENSUEL GLOBAL
+        // 📈 SECTION D : CHIFFRE D'AFFAIRES & ANALYSE DE TRÉSORERIE MENSUELLE
         // ----------------------------------------------------------------
-        $caMensuel = DB::table('recharges')
-            ->join('users', 'recharges.client_id', '=', 'users.id_u') // Jointure sur id_u
+        $depotId = auth()->user()->depot_id;
+        $currentMonth = Carbon::now()->month;
+        $currentYear = Carbon::now()->year;
+
+        // 1. Chiffre d'Affaires Mensuel Brut (Somme de toutes les ventes 'payer' et 'attente' du mois)
+        $caMensuelBrut = DB::table('ventes')
+            ->join('users', 'ventes.client_id', '=', 'users.id_u')
             ->where('users.depot_id', $depotId)
-            ->whereMonth('recharges.created_at', $currentMonth)
-            ->whereYear('recharges.created_at', $currentYear)
-            ->whereIn('recharges.type_mouvement', ['achat_direct', 'creation_dette'])
-            ->sum('recharges.montant_r');
+            ->whereMonth('ventes.created_at', $currentMonth)
+            ->whereYear('ventes.created_at', $currentYear)
+            ->whereIn('ventes.statut', [ 'payer'])
+            ->sum('ventes.montant_total');
+
+        // 2. Crédits (Dettes) Cumulés sur le mois en cours (La part non payée des factures)
+        // Somme des (Montant Total - Montant Versé) pour les factures du mois
+        $creditsMensuels = DB::table('ventes')
+            ->join('users', 'ventes.client_id', '=', 'users.id_u')
+            ->where('users.depot_id', $depotId)
+            ->whereMonth('ventes.created_at', $currentMonth)
+            ->whereYear('ventes.created_at', $currentYear)
+            ->whereIn('ventes.statut', ['payer'])
+            ->select(DB::raw('SUM(montant_total - montant_verse) as total_credits'))
+            ->first()->total_credits ?? 0;
+
+        // 3. Trésorerie Nette Encaissée (L'argent réel qui est entré dans la caisse)
+        $cashEncaisseMensuel = $caMensuelBrut - $creditsMensuels;
+
+        // 4. Taux de Recouvrement / Liquidité Nette (Ratio de cash réel)
+        $tauxLiquidite = $caMensuelBrut > 0 ? round(($cashEncaisseMensuel / $caMensuelBrut) * 100) : 100;
 
         // ----------------------------------------------------------------
         // 💎 SECTION E : CLASSEMENT DE LA CLIENTÈLE LA PLUS FIDÈLE
@@ -118,7 +166,7 @@ class PagePersonnel extends Controller
         $clientsFideles = DB::table('ventes')
             ->join('users', 'ventes.client_id', '=', 'users.id_u') // Jointure sur id_u
             ->where('users.depot_id', $depotId)
-            ->whereIn('ventes.statut', ['attente', 'payer'])
+            ->whereIn('ventes.statut', ['payer'])
             ->select(
                 'users.nom_u',
                 'users.tel_u',          // 💡 Correction ici : 'tel_u' au lieu de 'telephone_u'
@@ -130,11 +178,36 @@ class PagePersonnel extends Controller
             ->orderBy('capital_investi', 'desc')
             ->take(5)
             ->get();
+        // 📊 GRAPH REPARTITION DES VENTES PAR FOURNISSEUR (DU MOIS)
+        $ventesParFournisseur = DB::table('detail_ventes')
+            ->join('ventes', 'detail_ventes.vente_id', '=', 'ventes.id')
+            ->join('produits', 'detail_ventes.produit_id', '=', 'produits.id_produit')
+            ->join('fournisseurs', 'produits.id_fournisseur', '=', 'fournisseurs.id_fournisseur')
+            ->whereIn('ventes.statut', ['attente', 'payer']) // On prend aussi les attentes comptoir pour alimenter le graphe
+            ->whereMonth('ventes.created_at', Carbon::now()->month)
+            ->whereYear('ventes.created_at', Carbon::now()->year)
+            ->select('fournisseurs.nom_fournisseur', DB::raw('SUM(detail_ventes.quantite) as volume_total'))
+            ->groupBy('fournisseurs.id_fournisseur', 'fournisseurs.nom_fournisseur')
+            ->get();
+
+        // 💡 Sécurité : Si le tableau est vide, on injecte des données de simulation pour l'affichage initial
+        if ($ventesParFournisseur->isEmpty()) {
+            $labelsFournisseurs = ['SABC', 'GUINNESS', 'UCB'];
+            $donneesVentes = [0, 0, 0] ; // Sera géré proprement par le script
+        } else {
+            $labelsFournisseurs = $ventesParFournisseur->pluck('nom_fournisseur')->toArray();
+            $donneesVentes = $ventesParFournisseur->pluck('volume_total')->map(function($val) {
+                return (int)$val;
+            })->toArray();
+        }
+
+
 
         return view('layout.Personnel.dashboard', compact(
             'caJournalier', 'nbDettesJour', 'nbCommandesWeb', 'volumeVenduesJour',
             'totalStockPhysique', 'totalApprovisionneJour', 'nbRuptures', 'totalReferences',
-            'topVentes', 'caMensuel', 'clientsFideles'
+            'topVentes', 'clientsFideles', 'stockCasiers12', 'stockCasiers24', 'stockBidonsEtAutres', 'caMensuelBrut', 'creditsMensuels', 'cashEncaisseMensuel',
+            'tauxLiquidite', 'labelsFournisseurs', 'donneesVentes'
         ));
     }
     public function showpageclient()
@@ -146,8 +219,36 @@ class PagePersonnel extends Controller
             $query->where('depot_id', Auth::user()->depot_id);
         }
 
-        $clients = $query->orderBy('nom_u', 'asc')->get();
-        return view('layout.Personnel.client', compact('clients'));
+        $depotId = auth()->user()->depot_id;
+
+    // 💡 SÉCURISATION DES SOUS-REQUÊTES : Niveau unique pour éviter l'erreur 1054 de MariaDB
+    $clients = DB::table('users')
+        ->where('users.depot_id', $depotId)
+        ->where('users.role_u', 'client')
+        ->select(
+            '*',
+            
+            // 🔄 COMPILATION COMPTABLE DU BILAN DE CHAQUE FOURNISSEUR POUR CE CLIENT
+            DB::raw("
+                (SELECT GROUP_CONCAT(CONCAT(f.nom_fournisseur, ':', 
+                    -- Formule : TOTAL ACHETÉ - TOTAL RENDU
+                    (IFNULL((SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN ventes v ON dv.vente_id = v.id JOIN produits p ON dv.produit_id = p.id_produit WHERE v.client_id = users.id_u AND v.statut = 'livrer' AND p.id_fournisseur = f.id_fournisseur AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')), 0) - 
+                     IFNULL((SELECT SUM(rc.quantite_rendue) FROM retours_casiers rc WHERE rc.client_id = users.id_u AND rc.fournisseur_id = f.id_fournisseur), 0)),
+                    ':',
+                    -- Indicateur d'activité : TOTAL ACHETÉ + TOTAL RENDU
+                    (IFNULL((SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN ventes v ON dv.vente_id = v.id JOIN produits p ON dv.produit_id = p.id_produit WHERE v.client_id = users.id_u AND v.statut = 'livrer' AND p.id_fournisseur = f.id_fournisseur AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')), 0) + 
+                     IFNULL((SELECT SUM(rc.quantite_rendue) FROM retours_casiers rc WHERE rc.client_id = users.id_u AND rc.fournisseur_id = f.id_fournisseur), 0))
+                ) SEPARATOR '|') 
+                 FROM fournisseurs f
+                 -- On force SQL à n'inclure le bloc dans la chaîne que si la somme activité est supérieure à 0 (Règle stricte demandée)
+                 HAVING COUNT(f.id_fournisseur) > 0
+                ) as bilan_consignes_global
+            ")
+        )
+        ->orderBy('users.nom_u', 'asc')
+        ->get();
+
+    return view('layout.personnel.client', compact('clients'));
 
     }
     public function showpagehistorique()
@@ -166,31 +267,41 @@ class PagePersonnel extends Controller
         // 🛡️ SÉCURITÉ SOUVERAINE : FLUX DE L'ADMINISTRATEUR (ACCÈS TOUT RÉSEAU)
         // ====================================================================
         if ($role === 'admin') {
-            
-            // 💡 REQUÊTE CONNECTÉE AUX 3 TABLES D'ENTRÉES : detail_approvisionnements + approvisionnements + produits
+    
+            // 💡 MISE À JOUR : Remplacement du gestionnaire par le Nom du Fournisseur
             $approvisionnements = DB::table('detail_approvisionnements')
                 ->join('approvisionnements', 'detail_approvisionnements.approvisionnement_id', '=', 'approvisionnements.id_app')
                 ->join('produits', 'detail_approvisionnements.produit_id', '=', 'produits.id_produit')
-                ->join('depots', 'approvisionnements.depot_id', '=', 'depots.id') // Jointure sur depots.id selon votre migration
-                ->join('users as employes', 'approvisionnements.id_u_admin', '=', 'employes.id_u') // Jointure sur id_u_admin
+                ->join('depots', 'approvisionnements.depot_id', '=', 'depots.id')
+                ->join('fournisseurs', 'approvisionnements.id_fournisseur', '=', 'fournisseurs.id_fournisseur') // Jointure fournisseur
                 ->select(
-                    'detail_approvisionnements.quantite_ajoutee',
-                    'approvisionnements.created_at',
                     'approvisionnements.id_app',
-                    'produits.nom_p',
-                    'produits.format_p',
+                    'approvisionnements.created_at',
+                    'approvisionnements.total_boissons',
                     'depots.nom_depot',
-                    'employes.nom_u as nom_employe'
+                    'fournisseurs.nom_fournisseur', // Extraction de la brasserie
+                    // Compilation des boissons du bon
+                    DB::raw("GROUP_CONCAT(CONCAT('• ', UPPER(produits.nom_p), ' (', produits.format_p, ') : <b>', CAST(detail_approvisionnements.quantite_ajoutee AS UNSIGNED), '</b> ') SEPARATOR '|') as liste_produits_html")
+                )
+                ->groupBy(
+                    'approvisionnements.id_app',
+                    'approvisionnements.created_at',
+                    'approvisionnements.total_boissons',
+                    'depots.nom_depot',
+                    'fournisseurs.nom_fournisseur' // Regroupement propre
                 )
                 ->orderBy('approvisionnements.created_at', 'desc')
                 ->get();
 
-            // L'admin charge l'intégralité des factures de sorties validées ou en attente
+            // L'admin charge l'intégralité des factures de sorties
             $ventes = Vente::with(['client.depot', 'employe', 'detailVentes.produit'])
-                ->whereIn('statut', ['attente', 'payer'])
+                ->whereIn('statut', ['livrer', 'payer', 'annuler'])
                 ->orderBy('created_at', 'desc')
                 ->get();
-        } 
+        }
+
+
+
         // ====================================================================
         // 🛡️ SÉCURITÉ SOUVERAINE : FLUX DE L'EMPLOYÉ (ACCÈS COUPE RESTREINT)
         // ====================================================================
@@ -200,7 +311,7 @@ class PagePersonnel extends Controller
 
             // L'employé ne récupère STRICTEMENT que les ventes liées à des clients de son dépôt
             $ventes = Vente::with(['client.depot', 'employe', 'detailVentes.produit'])
-                ->whereIn('statut', ['attente', 'payer'])
+                ->whereIn('statut', ['livrer', 'payer', 'annuler'])
                 ->whereHas('client', function($query) use ($depotId) {
                     $query->where('depot_id', $depotId);
                 })

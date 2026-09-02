@@ -53,30 +53,55 @@
             </div>
         </div>
 
-        <!-- Bloc Résumé de l'Inventaire -->
+        <!-- Bloc Résumé de l'Inventaire Industriel -->
         <div class="col-xl-4 col-lg-5">
-            <div class="erp-panel p-4 h-100 bg-white">
+            <div class="erp-panel p-4 h-100 bg-white border rounded-4 shadow-sm">
                 <div class="border-bottom pb-2 mb-3">
-                    <h5 class="fw-bold text-dark m-0">Résumé des Stocks</h5>
+                    <h5 class="fw-bold text-dark m-0"><i class="bi bi-box-seam text-secondary me-2"></i>Résumé de l'Inventaire</h5>
                 </div>
                 
-                <!-- Quantité totale en stock physique -->
-                <div class="d-flex justify-content-between align-items-center p-3 mb-3 bg-light rounded-3 border">
-                    <span class="text-uppercase small fw-bold text-secondary font-monospace" style="font-size: 0.75rem;">Boissons en stock</span>
-                    <strong class="fs-4 text-dark font-monospace" id="summaryQtyInHand">
-                        {{ ($totalStockPhysique == floor($totalStockPhysique)) ? (int)$totalStockPhysique : number_format($totalStockPhysique, 1, ',', ' ') }}
-                    </strong>
+                <!-- 📦 BLOC A : STOCK PHYSIQUE GLOBAL EN COMPTOIR -->
+                <div class="p-3 mb-3 bg-dark text-white rounded-3 border">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-uppercase small fw-bold font-monospace opacity-70" style="font-size: 0.72rem; letter-spacing: 0.5px;">Stock Physique Total</span>
+                        <strong class="fs-4 text-warning font-monospace">
+                            {{ ($totalStockPhysique == floor($totalStockPhysique)) ? (int)$totalStockPhysique : number_format($totalStockPhysique, 1, ',', ' ') }} <small style="font-size:0.75rem;">cs/u</small>
+                        </strong>
+                    </div>
+                    
+                    <!-- Ventilation détaillée par type de conditionnement (Sous-compteurs requis) -->
+                    <div class="mt-2.5 pt-2 border-top border-secondary border-opacity-30 d-flex flex-column gap-1.5" style="font-size: 0.8rem;">
+                        <div class="d-flex justify-content-between opacity-80">
+                            <span>• Casiers de 12 blles :</span>
+                            <strong class="font-monospace text-white">{{ (int)$stockCasiers12 }} cs</strong>
+                        </div>
+                        <div class="d-flex justify-content-between opacity-80">
+                            <span>• Casiers de 24 blles :</span>
+                            <strong class="font-monospace text-white">{{ (int)$stockCasiers24 }} cs</strong>
+                        </div>
+                        <div class="d-flex justify-content-between opacity-80">
+                            <span>• Bidons, Packs & Autres :</span>
+                            <strong class="font-monospace text-white">{{ (int)$stockBidonsEtAutres }} u</strong>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Quantité en cours de réapprovisionnement -->
-                <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded-3 border">
-                    <span class="text-uppercase small fw-bold text-secondary font-monospace" style="font-size: 0.75rem;">Boissons attendues</span>
-                    <strong class="fs-4 text-primary font-monospace" id="summaryQtyToReceive">
-                        {{ ($totalApprovisionneJour == floor($totalApprovisionneJour)) ? (int)$totalApprovisionneJour : number_format($totalApprovisionneJour, 1, ',', ' ') }}
-                    </strong>
+                <!-- 🚚 BLOC B : ARRIVAGES & APPROVISIONNEMENTS DU BRASSEUR -->
+                <div class="p-3 bg-light rounded-3 border border-primary border-opacity-20">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-uppercase small fw-bold text-primary font-monospace d-block" style="font-size: 0.72rem; letter-spacing: 0.5px;">Boissons Attendues</span>
+                            <small class="text-muted d-block" style="font-size:0.68rem; line-height:1.2;">Livraisons programmées du jour</small>
+                        </div>
+                        <strong class="fs-4 text-primary font-monospace">
+                            +{{ ($totalApprovisionneJour == floor($totalApprovisionneJour)) ? (int)$totalApprovisionneJour : number_format($totalApprovisionneJour, 1, ',', ' ') }}
+                        </strong>
+                    </div>
                 </div>
+
             </div>
         </div>
+
 
     </div>
 
@@ -144,22 +169,55 @@
             </div>
         </div>
 
-        <!-- Bloc Chiffre Mensuel -->
+        <!-- Bloc Chiffre Mensuel & Analyse Comptable Rigoureuse -->
         <div class="col-md-12 col-xl-4">
-            <div class="erp-panel p-4 h-100 bg-white">
+            <div class="erp-panel p-4 h-100 bg-white border rounded-4 shadow-sm">
                 <div class="panel-header px-0 pt-0 mb-4 bg-transparent border-bottom border-light">
-                    <span class="text-uppercase text-muted fw-bold font-monospace" style="font-size: 0.75rem;">Performances Commerciales</span>
+                    <span class="text-uppercase text-muted fw-bold font-monospace" style="font-size: 0.75rem;"><i class="bi bi-calculator me-2"></i>Performances Commerciales (Mois)</span>
                 </div>
-                <div class="py-3 text-center">
-                    <small class="text-uppercase tracking-wider text-muted font-monospace d-block mb-1">Chiffre d'Affaires Mensuel</small>
-                    <h1 class="fw-black text-primary tracking-tight display-6 m-0 fw-bold font-monospace" id="statMonthlySales">{{ number_format($caMensuel, 0, ',', ' ') }} <small class="fs-5 fw-bold">F</small></h1>
-                    <div class="mt-4 p-3 bg-primary-subtle rounded-3 border border-primary border-opacity-10" style="background-color: rgba(0,82,255,0.03);">
-                        <small class="text-primary d-block fw-bold"><i class="bi bi-graph-up-arrow me-1"></i> Objectif de la Direction</small>
-                        <small class="text-muted small">Suivi d'épargne et volume prépayé centralisé</small>
+                
+                <div class="py-1">
+                    <!-- 📊 ÉTAPE A : CHIFFRE D'AFFAIRES BRUT MENSUEL -->
+                    <div class="text-center mb-4 border-bottom pb-3">
+                        <small class="text-uppercase tracking-wider text-muted font-monospace d-block mb-1">Chiffre d'Affaires Facturé (CA)</small>
+                        <h1 class="fw-black text-primary tracking-tight display-6 m-0 fw-bold font-monospace" id="statMonthlySales">
+                            {{ number_format($caMensuelBrut, 0, ',', ' ') }} <small class="fs-5 fw-bold">F</small>
+                        </h1>
                     </div>
+
+                    <!-- 🧮 ÉTAPE B : VENTILATION ET AUDIT DE TRÉSORERIE -->
+                    <div class="d-flex flex-column gap-3 mb-4 font-monospace" style="font-size: 0.88rem;">
+                        <!-- Cash Réel Encaissé -->
+                        <div class="d-flex justify-content-between align-items-center p-2 rounded-3" style="background-color: rgba(25, 135, 84, 0.05);">
+                            <span class="text-success fw-bold"><i class="bi bi-cash-stack me-1.5"></i>Trésorerie Encaissée :</span>
+                            <strong class="text-success fw-bold">{{ number_format($cashEncaisseMensuel, 0, ',', ' ') }} F</strong>
+                        </div>
+
+                        <!-- Crédits Clients Accordés -->
+                        <div class="d-flex justify-content-between align-items-center p-2 rounded-3" style="background-color: rgba(220, 53, 69, 0.05);">
+                            <span class="text-danger fw-bold"><i class="bi bi-credit-card-2-back-fill me-1.5"></i>Crédits accordés (Dettes) :</span>
+                            <strong class="text-danger fw-bold">- {{ number_format($creditsMensuels, 0, ',', ' ') }} F</strong>
+                        </div>
+                    </div>
+
+                    <!-- 🚨 ÉTAPE C : COMPOSANT FINTECH - INDICE DE LIQUIDITÉ RÉELLE -->
+                    <div class="p-3 rounded-4 border border-opacity-10 d-flex justify-content-between align-items-center" 
+                        style="background-color: rgba(0,82,255,0.02); border-color: #0052ff;">
+                        <div>
+                            <small class="text-primary d-block fw-bold"><i class="bi bi-graph-up-arrow me-1"></i> Taux de Trésorerie Nette</small>
+                            <small class="text-muted small">Part d'argent liquide sur le volume facturé</small>
+                        </div>
+                        <!-- Badge dynamique d'alerte : Jaune si trop de dettes de crédit dehors, Vert si optimal -->
+                        <span class="badge font-monospace px-3 py-2 rounded-3 fw-bold fs-6 {{ $tauxLiquidite < 75 ? 'bg-warning text-dark' : 'bg-success text-white' }}">
+                            {{ $tauxLiquidite }}%
+                        </span>
+                    </div>
+
                 </div>
             </div>
         </div>
+
+
 
     </div>
 
@@ -201,7 +259,7 @@
                                 <tr>
                                     <td colspan="5" class="text-center py-4 text-muted small">Aucun historique client disponible.</td>
                                 </tr>
-                            @endforelse
+                            @endforelse 
 
                         </tbody>
                     </table>
@@ -229,4 +287,5 @@
         });
     });
 </script>
+
 @endpush
