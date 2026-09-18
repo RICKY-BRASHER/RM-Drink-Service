@@ -11,6 +11,7 @@ use App\Models\Vente;
 use App\Models\DetailVente;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class Workstocksell extends Controller
 {
@@ -228,7 +229,7 @@ class Workstocksell extends Controller
             $client = User::find($idClient);
             if (!$client) {
                 return response()->json(['success' => false, 'message' => 'Client introuvable.'], 404);
-            }
+            } 
 
             $soldeAvant = $client->solde_u;
             $nouveauSolde = $soldeAvant + $montant;
@@ -239,8 +240,8 @@ class Workstocksell extends Controller
             DB::table('notifications_systeme')->insert([
                 'user_id'    => $client->id_u, // 📱 Envoyé directement sur le smartphone du client concerné
                 'depot_id'   => auth()->user()->depot_id, // Lié au dépôt émetteur
-                'titre_n'    => "💰 Compte Épargne ".$client->nom_u." Rechargé ",
-                'message_n'  => " compte a été crédité de " . number_format($request->input('montant_r'), 0, ',', ' ') . " FCFA au guichet. Nouveau solde : " . number_format($client->solde_u + $request->input('montant_r'), 0, ',', ' ') . " F.",
+                'titre_n'    => " Recharge Epargne",
+                'message_n'  => " compte  crédité de " . number_format($request->input('montant_r'), 0, ',', ' ') . " FCFA. Nouveau solde : " . number_format($client->solde_u + $request->input('montant_r'), 0, ',', ' ') . " F.",
                 'icone_n'    => "bi-cash-coin",
                 'couleur_n'  => "text-success", // Vert Fintech pour la trésorerie positive
                 'created_at' => now(),
@@ -387,167 +388,165 @@ class Workstocksell extends Controller
     /**
      * Encaissement final, validation comptable et ajustement des stocks physiques
      */
-public function cloturerVente(Request $request)
-{
-    $request->validate([
-        'vente_id'       => 'required|integer',
-        'mode_paiement'  => 'required',
-        'statut'         => 'required|in:payer,attente',
-        'montant_verse'  => 'required|numeric|min:0', 
-        'rendre_monnaie' => 'nullable|integer|in:0,1'   
-    ]);
+    public function cloturerVente(Request $request)
+    {
+        $request->validate([
+            'vente_id'       => 'required|integer',
+            'mode_paiement'  => 'required',
+            'statut'         => 'required|in:payer,attente',
+            'montant_verse'  => 'required|numeric|min:0', 
+            'rendre_monnaie' => 'nullable|integer|in:0,1'   
+        ]);
 
-    $venteId               = $request->input('vente_id');
-    $statutFacture         = $request->input('statut');
-    $cashPhysique          = (float)$request->input('montant_verse');
-    $rendreMonnaiePhysique = $request->input('rendre_monnaie') == 1;
+        $venteId               = $request->input('vente_id');
+        $statutFacture         = $request->input('statut');
+        $cashPhysique          = (float)$request->input('montant_verse');
+        $rendreMonnaiePhysique = $request->input('rendre_monnaie') == 1;
 
-    $vente = Vente::find($venteId);
-    if (!$vente) {
-        return response()->json(['success' => false, 'message' => 'Facture introuvable.'], 404);
-    }
+        $vente = Vente::find($venteId);
+        if (!$vente) {
+            return response()->json(['success' => false, 'message' => 'Facture introuvable.'], 404);
+        }
 
-    DB::beginTransaction();
-    try {
-        // STOCK DES BOISSONS
-        foreach ($grid = $vente->detailVentes as $detail) {
-            $qte = (float)$detail->quantite;
-            
-            // Validation PHP des décimales autorisées
-            $partieDecimale = round($qte - floor($qte), 2);
-            if (!in_array($partieDecimale, [0.00, 0.25, 0.50, 0.75])) {
-                return response()->json(['success' => false, 'message' => "Fraction de casier interdite détectée."], 422);
-            }
-
-            $produit = $detail->produit;
-            if ($produit->quantite_p < $detail->quantite) {
-                return response()->json(['success' => false, 'message' => "Stock insuffisant pour {$produit->nom_p}."], 422);
-            }
-            $produit->quantite_p -= $detail->quantite;
-            $produit->save();
-            // 💡 CAPTEUR INDUSTRIEL : Vérification automatique du seuil d'alerte après déduction
-            $produitApresVente = DB::table('produits')->where('id_produit', $detail->produit_id)->first();
-
-            if ($produitApresVente && $produitApresVente->quantite_p <= $produitApresVente->seuil) {
+        DB::beginTransaction();
+        try {
+            // STOCK DES BOISSONS
+            foreach ($grid = $vente->detailVentes as $detail) {
+                $qte = (float)$detail->quantite;
                 
-                // On vérifie si une alerte non lue existe déjà pour éviter de dupliquer la même notification
-                $alerteExiste = DB::table('alertes_stocks')
-                    ->where('produit_id', $produitApresVente->id_produit)
-                    ->where('depot_id', $vente->depot_id ?? auth()->user()->depot_id)
-                    ->where('statut_lecture', 'non_lu')
-                    ->exists();
+                // Validation PHP des décimales autorisées
+                $partieDecimale = round($qte - floor($qte), 2);
+                if (!in_array($partieDecimale, [0.00, 0.25, 0.50, 0.75])) {
+                    return response()->json(['success' => false, 'message' => "Fraction de casier interdite détectée."], 422);
+                }
 
-                if (!$alerteExiste) {
-                    // Insertion chirurgicale de la notification d'alerte critique
-                    DB::table('alertes_stocks')->insert([
-                        'produit_id'        => $produitApresVente->id_produit,
-                        'depot_id'          => $vente->depot_id ?? auth()->user()->depot_id,
-                        'quantite_restante' => $produitApresVente->quantite_p,
-                        'seuil_limite'      => $produitApresVente->seuil,
-                        'created_at'        => now(),
-                        'updated_at'        => now()
+                $produit = $detail->produit;
+                if ($produit->quantite_p < $detail->quantite) {
+                    return response()->json(['success' => false, 'message' => "Stock insuffisant pour {$produit->nom_p}."], 422);
+                }
+                $produit->quantite_p -= $detail->quantite;
+                $produit->save();
+                // 💡 CAPTEUR INDUSTRIEL : Vérification automatique du seuil d'alerte après déduction
+                $produitApresVente = DB::table('produits')->where('id_produit', $detail->produit_id)->first();
+
+                if ($produitApresVente && $produitApresVente->quantite_p <= $produitApresVente->seuil) {
+                    
+                    // On vérifie si une alerte non lue existe déjà pour éviter de dupliquer la même notification
+                    $alerteExiste = DB::table('alertes_stocks')
+                        ->where('produit_id', $produitApresVente->id_produit)
+                        ->where('depot_id', $vente->depot_id ?? auth()->user()->depot_id)
+                        ->where('statut_lecture', 'non_lu')
+                        ->exists();
+
+                    if (!$alerteExiste) {
+                        // Insertion chirurgicale de la notification d'alerte critique
+                        DB::table('alertes_stocks')->insert([
+                            'produit_id'        => $produitApresVente->id_produit,
+                            'depot_id'          => $vente->depot_id ?? auth()->user()->depot_id,
+                            'quantite_restante' => $produitApresVente->quantite_p,
+                            'seuil_limite'      => $produitApresVente->seuil,
+                            'created_at'        => now(),
+                            'updated_at'        => now()
+                        ]);
+                    }
+                }
+            }
+
+            // BLOC COMMANDE EN ATTENTE
+            if ($statutFacture === 'attente') {
+                $montantFacture = (float)$vente->montant_total;
+                $virtuelPreleveEpargne = 0;
+
+                if (!is_null($vente->client_id)) {
+                    $client = User::find($vente->client_id);
+                    if ($cashPhysique < $montantFacture && $client->solde_u > 0) {
+                        $manquant = $montantFacture - $cashPhysique;
+                        $virtuelPreleveEpargne = min($manquant, $client->solde_u); // 
+                    }
+                }
+
+                $vente->montant_verse = $cashPhysique + $virtuelPreleveEpargne; 
+                $vente->mode_paiement = $request->input('mode_paiement');
+                $vente->statut         = 'attente';
+                $vente->save();
+            } 
+            // BLOC FACTURE PAYÉE IMMÉDIATEMENT
+            else {
+                $montantFacture = (float)$vente->montant_total;
+                $montantPreleveEpargne = 0;
+                $cashNetConserve = $cashPhysique;
+
+                if (!is_null($vente->client_id)) {
+                    $client = User::find($vente->client_id);
+
+                    if ($client->solde_u < 0 && $cashPhysique < ($montantFacture + abs($client->solde_u))) {
+                        return response()->json(['success' => false, 'message' => 'Le client doit apurer sa dette active.'], 422);
+                    }
+
+                    if ($cashPhysique < $montantFacture && $client->solde_u > 0) {
+                        $manquant = $montantFacture - $cashPhysique;
+                        $montantPreleveEpargne = min($manquant, $client->solde_u);
+                    }
+
+                    if ($rendreMonnaiePhysique) {
+                        $nouveauSolde = ($client->solde_u < 0) ? 0.00 : $client->solde_u;
+                        $cashNetConserve = $montantFacture + ($client->solde_u < 0 ? abs($client->solde_u) : 0);
+                    } else {
+                        $nouveauSolde = $client->solde_u + $cashPhysique - $montantFacture;
+                    }
+
+                    $epargneDisponible = $client->solde_u > 0 ? $client->solde_u : 0;
+                    $detteActive       = $client->solde_u < 0 ? abs($client->solde_u) : 0;
+                    $typeMouvement = ($cashPhysique >= ($montantFacture + $detteActive - $epargneDisponible)) ? 'achat_direct' : 'creation_dette';
+
+                    DB::table('recharges')->insert([
+                        'reference_tx'   => 'POS-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
+                        'type_mouvement' => $typeMouvement,
+                        'client_id'      => $client->id_u,
+                        'vente_id'       => $vente->id,
+                        'employe_id'     => Auth::user()->id_u,
+                        'montant_r'      => $cashNetConserve,
+                        'solde_avant_r'  => $client->solde_u,
+                        'solde_apres_r'  => $nouveauSolde,
+                        'moyen_recharge' => $request->input('mode_paiement') === 'OM-MOMO' ? 'momo' : 'especes',
+                        'ip_adresse'     => $request->ip(),
+                        'created_at'     => now(),
+                        'updated_at'     => now()
                     ]);
-                }
-            }
-        }
 
-        // BLOC COMMANDE EN ATTENTE
-        if ($statutFacture === 'attente') {
-            $montantFacture = (float)$vente->montant_total;
-            $virtuelPreleveEpargne = 0;
-
-            if (!is_null($vente->client_id)) {
-                $client = User::find($vente->client_id);
-                if ($cashPhysique < $montantFacture && $client->solde_u > 0) {
-                    $manquant = $montantFacture - $cashPhysique;
-                    $virtuelPreleveEpargne = min($manquant, $client->solde_u); // 
-                }
-            }
-
-            $vente->montant_verse = $cashPhysique + $virtuelPreleveEpargne; 
-            $vente->mode_paiement = $request->input('mode_paiement');
-            $vente->statut         = 'attente';
-            $vente->save();
-        } 
-        // BLOC FACTURE PAYÉE IMMÉDIATEMENT
-        else {
-            $montantFacture = (float)$vente->montant_total;
-            $montantPreleveEpargne = 0;
-            $cashNetConserve = $cashPhysique;
-
-            if (!is_null($vente->client_id)) {
-                $client = User::find($vente->client_id);
-
-                if ($client->solde_u < 0 && $cashPhysique < ($montantFacture + abs($client->solde_u))) {
-                    return response()->json(['success' => false, 'message' => 'Le client doit apurer sa dette active.'], 422);
+                    $client->solde_u = $nouveauSolde;
+                    $client->save();
                 }
 
-                if ($cashPhysique < $montantFacture && $client->solde_u > 0) {
-                    $manquant = $montantFacture - $cashPhysique;
-                    $montantPreleveEpargne = min($manquant, $client->solde_u);
-                }
-
-                if ($rendreMonnaiePhysique) {
-                    $nouveauSolde = ($client->solde_u < 0) ? 0.00 : $client->solde_u;
-                    $cashNetConserve = $montantFacture + ($client->solde_u < 0 ? abs($client->solde_u) : 0);
+                if ($rendreMonnaiePhysique && ($cashPhysique > $montantFacture)) {
+                    $vente->montant_verse = $montantFacture;
                 } else {
-                    $nouveauSolde = $client->solde_u + $cashPhysique - $montantFacture;
+                    $vente->montant_verse = $cashPhysique + $montantPreleveEpargne;
                 }
 
-                $epargneDisponible = $client->solde_u > 0 ? $client->solde_u : 0;
-                $detteActive       = $client->solde_u < 0 ? abs($client->solde_u) : 0;
-                $typeMouvement = ($cashPhysique >= ($montantFacture + $detteActive - $epargneDisponible)) ? 'achat_direct' : 'creation_dette';
-
-                DB::table('recharges')->insert([
-                    'reference_tx'   => 'POS-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
-                    'type_mouvement' => $typeMouvement,
-                    'client_id'      => $client->id_u,
-                    'vente_id'       => $vente->id,
-                    'employe_id'     => Auth::user()->id_u,
-                    'montant_r'      => $cashNetConserve,
-                    'solde_avant_r'  => $client->solde_u,
-                    'solde_apres_r'  => $nouveauSolde,
-                    'moyen_recharge' => $request->input('mode_paiement') === 'OM-MOMO' ? 'momo' : 'especes',
-                    'ip_adresse'     => $request->ip(),
-                    'created_at'     => now(),
-                    'updated_at'     => now()
-                ]);
-
-                $client->solde_u = $nouveauSolde;
-                $client->save();
+                $vente->mode_paiement = $request->input('mode_paiement');
+                $vente->statut  = 'payer';
+                $vente->save();
             }
+            
 
-            if ($rendreMonnaiePhysique && ($cashPhysique > $montantFacture)) {
-                $vente->montant_verse = $montantFacture;
-            } else {
-                $vente->montant_verse = $cashPhysique + $montantPreleveEpargne;
-            }
 
-            $vente->mode_paiement = $request->input('mode_paiement');
-            $vente->statut  = 'payer';
-            $vente->save();
+            DB::commit();
+
+            // 💡 RETOUR LÉGER ET FIABLE : On transmet uniquement l'ID de la vente validée
+            return response()->json([
+                'success' => true,
+                'message' => "Transaction enregistrée avec succès.",
+                'vente_id' => $vente->id 
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Erreur critique : ' . $e->getMessage()], 500);
         }
-        
-
-
-        DB::commit();
-
-        // 💡 RETOUR LÉGER ET FIABLE : On transmet uniquement l'ID de la vente validée
-        return response()->json([
-            'success' => true,
-            'message' => "Transaction enregistrée avec succès.",
-            'vente_id' => $vente->id 
-        ], 200);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json(['success' => false, 'message' => 'Erreur critique : ' . $e->getMessage()], 500);
     }
-}
 
-    /**
-     * 💡 NOUVELLE METHODE : Génère et distribue le flux PDF officiel via laravel-dompdf
-     */
+
     public function telechargerFacture(Request $request, $id)
     {
         // Récupération du format demandé dans l'URL (par défaut 'ticket' si vide)
@@ -561,60 +560,73 @@ public function cloturerVente(Request $request)
             'vente' => $vente,
             'nomDepot' => strtoupper($nomDepot),
             'logFinancier' => $logFinancier,
-            'formatPapier' => $formatPapier // Passé à la vue pour adapter le design CSS
-        ];
+            'formatPapier' => $formatPapier
+        ]; 
 
         // Compilation DomPDF à partir du fichier Blade
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('layout.export.facture', $data);
         
-        // 💡 CONFIGURATION DE LA TAILLE DU PAPIER SELON LE FORMAT CHOISI
+        // Configuration de la taille du papier selon le format
         if ($formatPapier === 'a4') {
             $pdf->setPaper('a4', 'portrait');
         } elseif ($formatPapier === 'a5') {
-            $pdf->setPaper('a5', 'portrait'); // Idéal pour les demi-pages économiques
+            $pdf->setPaper('a5', 'portrait');
         } else {
-            // Format ticket thermique classique 80mm de largeur
             $pdf->setPaper([0, 0, 226, 600], 'portrait'); 
         }
 
-        return $pdf->stream('facture_' . $vente->code_facture . '.pdf');
+        // ====================================================================
+        // 💾 SAUVEGARDE AUTOMATIQUE SUR LE SERVEUR (POUR RÉCUPÉRATION ULTÉRIEURE)
+        // ====================================================================
+        
+        // 1. Définition du nom unique du fichier et du dossier cible
+        $nomFichier = 'facture_' . $vente->code_facture . '.pdf';
+        $cheminDossier = 'public/factures/'; // Pointe vers storage/app/public/factures/
+        
+        // 2. Extraction du flux binaire brut généré par DomPDF
+        $fluxPdfContenu = $pdf->output();
+        
+        // 3. Écriture physique sécurisée du fichier dans le stockage local
+        Storage::put($cheminDossier . $nomFichier, $fluxPdfContenu);
+
+        // ====================================================================
+
+        // Envoi du flux d'affichage d'origine au navigateur du caissier
+        return $pdf->stream($nomFichier);
     }
-
-
     public function annulerBrouillon($id)
-{
-    DB::beginTransaction();
-    try {
-        // Recherche de la vente en statut draft par sécurité
-        $vente = DB::table('ventes')->where('id', $id)->where('statut', 'draft')->first();
+    {
+        DB::beginTransaction();
+        try {
+            // Recherche de la vente en statut draft par sécurité
+            $vente = DB::table('ventes')->where('id', $id)->where('statut', 'draft')->first();
 
-        if ($vente) {
-            // La suppression de la vente supprime en cascade ses detail_ventes associés
-            DB::table('ventes')->where('id', $id)->delete();
-            
-            DB::commit();
-            return response()->json([
-                'success' => true,
-                'message' => 'La facture en cours a été annulée avec succès.'
-            ], 200);
+            if ($vente) {
+                // La suppression de la vente supprime en cascade ses detail_ventes associés
+                DB::table('ventes')->where('id', $id)->delete();
+                
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'La facture en cours a été annulée avec succès.'
+                ], 200);
+            }
+
+            return response()->json(['success' => false, 'message' => 'Brouillon introuvable.'], 404);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
-
-        return response()->json(['success' => false, 'message' => 'Brouillon introuvable.'], 404);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
-}
 
-
-public function receptionnerCommandeEnLigne(Request $request, $id_facture)
+/*public function receptionnerCommandeEnLigne(Request $request, $id_facture)
 {
     $request->validate(['action' => 'required|in:valider,refuser']);
     $action = $request->input('action');
 
     // Sécurité : On cible uniquement les bons officiellement transmis ('envoyer')
-    $vente = Vente::with('detailVentes.produit')->find($id_facture);
+    $vente = Vente::with(['detailVentes.produit', 'client'])->find($id_facture);
     if (!$vente || $vente->statut !== 'envoyer') {
         return response()->json(['success' => false, 'message' => 'Cette commande mobile est introuvable ou déjà interceptée.'], 404);
     }
@@ -647,19 +659,17 @@ public function receptionnerCommandeEnLigne(Request $request, $id_facture)
                     return response()->json([
                         'success' => false,
                         'message' => "🔒 Réception refusée ! Le client " . strtoupper($clientCompte->nom_u) . " possède déjà une ardoise financière de " . number_format($detteActuelle, 0, ',', ' ') . " FCFA au dépôt (Plafond de tolérance : 5 000 F). Veuillez rejeter son bon ou lui demander d'apurer sa dette au guichet avant de réserver ses casiers."
-                    ], 422); // Le code 422 déclenchera l'alerte d'échec rouge sur l'écran jQuery
-                }else {
+                    ], 422);
+                } else {
                     $client = User::find($vente->client_id);
                     if ($client->solde_u >= $vente->montant_total) {
                         $client->solde_u -= $vente->montant_total;
                         $client->save();
                         $vente->statut = 'payer';
-                    }else {
+                    } else {
                         $vente->statut = 'attente';
                     }
                 }
-
-                
             }
 
             // --------------------------------------------------------------------
@@ -715,35 +725,69 @@ public function receptionnerCommandeEnLigne(Request $request, $id_facture)
                 }
             }
 
-            $vente->employe_id = Auth::user()->id_u; // On marque l'employé qui a validé la réception
+            $userStaff = Auth::user();
+            $vente->employe_id = $userStaff->id_u; // On marque l'employé qui a validé la réception
             $vente->save();
+
+            // 🔄 Re-charger proprement la vente avec l'employé rattaché pour la structure PDF
+            $venteFacturee = Vente::with(['detailVentes.produit', 'client', 'employe'])->find($vente->id);
+
+            // ====================================================================
+            // 💾 1. GÉNÉRATION AUTOMATIQUE DU PDF COMPTABLE SUR LE SERVEUR
+            // ====================================================================
+            $nomDepot = DB::table('depots')->where('id', $userStaff->depot_id ?? null)->value('nom_depot') ?? 'Dépôt Central';
+            $logFinancier = DB::table('recharges')->where('vente_id', $vente->id)->first();
+
+            $pdfData = [
+                'vente' => $venteFacturee,
+                'nomDepot' => strtoupper($nomDepot),
+                'logFinancier' => $logFinancier,
+                'formatPaper' => 'ticket' // Format ticket par défaut pour archivage local
+            ];
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('layout.export.facture', $pdfData);
+            $pdf->setPaper([0, 0, 226, 600], 'portrait'); // Standard 80mm
+            
+            // Stockage local physique dans storage/app/public/factures/
+            $nomFichierPdf = 'facture_' . $venteFacturee->code_facture . '.pdf';
+            Storage::put('public/factures/' . $nomFichierPdf, $pdf->output());
+            // ====================================================================
+
+            // Ajustement dynamique de l'alerte cloche selon le statut financier
+            $messageNotif = ($venteFacturee->statut === 'payer')
+                ? "Votre bon " . $venteFacturee->code_facture . " a été soldé par votre compte épargne. La facture PDF est archivée. Vos casiers sont prêts à la livraison."
+                : "Votre bon " . $venteFacturee->code_facture . " a été intercepté et validé au dépôt. Vous pouvez passer au guichet pour le règlement.";
 
             // Envoi de l'accusé de réception sur l'application mobile du client
             DB::table('notifications_systeme')->insert([
-                'user_id'    => $vente->client_id,
-                'titre_n'    => "✅ Commande Réceptionnée",
-                'message_n'  => "Votre bon " . $vente->code_facture . " a été intercepté. Les casiers sont réservés. Rendez-vous au guichet pour le règlement.",
+                'user_id'    => $venteFacturee->client_id,
+                'titre_n'    => ($venteFacturee->statut === 'payer') ? "✅ Commande Soldée" : "✅ Commande Réceptionnée",
+                'message_n'  => $messageNotif,
                 'icone_n'    => "bi-check-circle-fill",
                 'couleur_n'  => "text-success",
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
-            
-
 
             DB::commit();
+
+            // Message AJAX adapté pour l'affichage de la secrétaire
+            $messageJson = ($venteFacturee->statut === 'payer')
+                ? "La commande a été payée automatiquement via le solde client. Le stock a été déduit et la facture PDF a été générée avec succès."
+                : "La commande en ligne a été réceptionnée. Les casiers sont déduits du stock. La facture PDF a été générée et attend le règlement au guichet.";
+
             return response()->json([
                 'success' => true, 
-                'message' => "La commande en ligne a été réceptionnée. Les casiers sont déduits du stock. Le bon attend son règlement au guichet."
+                'message' => $messageJson
             ], 200);
         }
-
 
     } catch (\Exception $e) {
         DB::rollBack();
         return response()->json(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()], 500);
     }
 }
+*/
 
 public function traiterCommandeEnAttente(Request $request, $id_facture)
 {
@@ -815,24 +859,48 @@ public function traiterCommandeEnAttente(Request $request, $id_facture)
         // ====================================================================
         if ($action === 'valider') {
             $montantFacture = (float)$vente->montant_total;
-
+            $totalCashPhysiqueRecu = (float)$complementCash;
+            $montantFacture = (float)$vente->montant_total;
+            $avanceAnterieure = (float)$vente->montant_verse;
+            $resteApyerFacture = $montantFacture - $avanceAnterieure;
             if (!is_null($vente->client_id)) {
                 $client = User::find($vente->client_id);
-                $totalCashPhysiqueRecu = $complementCash;
+                
 
-                // 🧮 CALCUL PRÉVISIONNEL DU SOLDE FINAL AVANT ÉCRITURE
-                $soldeFinalPrevisionnel = $client->solde_u + $totalCashPhysiqueRecu - $montantFacture;
+                // 🧮 CALCUL PRÉVISIONNEL DU SOLDE FINAL APPRÈS ENCAISSEMENT
+                // Formule : Solde actuel + Nouveau cash apporté - Reste à payer de la facture
+                $resteApyerFacture = $montantFacture - $avanceAnterieure;
+                $soldeFinalPrevisionnel = $client->solde_u + $totalCashPhysiqueRecu - $resteApyerFacture;
 
-                // 🚨 LE VERROU CHIRURGICAL DU PLAFOND GLISSANT (-5 000 F MAX DE DETTE)
-                if ($soldeFinalPrevisionnel < -5000) {
-                    $detteRefusee = abs($soldeFinalPrevisionnel);
-                    $montantMinimumAverser = $montantFacture - $client->solde_u - 5000;
+                // 🚨 ====================================================================
+                // PROTOCOLE DE VÉRIFICATION DU CRÉDIT ET DES DETTES
+                // ====================================================================
+                
+                // ÉTAPE A : Le client possède déjà une dette traînante au dépôt (Solde négatif au départ)
+                if ($client->solde_u < 0) {
                     
-                    return response()->json([
-                        'success' => false,
-                        'message' => "🔒 Clôture refusée ! La dette finale monterait à " . number_format($detteRefusee, 0, ',', ' ') . " F. Le règlement doit garantir que la dette finale ne dépasse pas 5 000 F. Veuillez réclamer au minimum : " . number_format($montantMinimumAverser, 0, ',', ' ') . " F."
-                    ], 422);
+                    // Condition 1 : Le règlement effectué couvre-t-il au moins l'intégralité du reste de la facture ?
+                    $couvreLaFactureDuJour = ($totalCashPhysiqueRecu >= $resteApyerFacture);
+                    
+                    // Condition 2 : La dette finale cumulée reste-t-elle sous le plafond strict de 10 000 F ?
+                    $detteFinaleSousLePlafond = ($soldeFinalPrevisionnel >= -10000);
+
+                    // Si AUCUNE des deux conditions n'est respectée, le logiciel bloque la transaction
+                    if (!$couvreLaFactureDuJour && !$detteFinaleSousLePlafond) {
+                        $dettePrevisionnelleTotale = abs($soldeFinalPrevisionnel);
+                        
+                        // Calcul mathématique du montant minimal que le client doit donner pour redescendre à -10 000 F
+                        $montantMinimumAverser = abs($client->solde_u) + $resteApyerFacture - 10000;
+                        
+                        return response()->json([
+                            'success' => false,
+                            'message' => "🔒 Clôture refusée ! Ce client possède déjà une dette. Le cash reçu ne couvre pas la facture du jour (" . number_format($resteApyerFacture, 0, ',', ' ') . " F) et la dette finale grimperait à " . number_format($dettePrevisionnelleTotale, 0, ',', ' ') . " F (Plafond autorisé : 10 000 F). Veuillez réclamer au minimum : " . number_format($montantMinimumAverser, 0, ',', ' ') . " FCFA."
+                        ], 422);
+                    }
                 }
+                
+                // ÉTAPE B : Si le client n'avait pas de dette préalable (solde >= 0), 
+                // ou s'il a franchi l'une des deux barrières ci-dessus, le code continue normalement.
 
                 $nouveauSolde = $soldeFinalPrevisionnel;
                 $typeMouvement = ($nouveauSolde < 0) ? 'creation_dette' : 'achat_direct';
@@ -856,14 +924,51 @@ public function traiterCommandeEnAttente(Request $request, $id_facture)
                 // Mise à jour de la fiche solde du client
                 $client->solde_u = $nouveauSolde;
                 $client->save();
+
+                // 💡 RECTIFICATION COMPTABLE : Calcul du montant versé réel sur la facture
+                $verseCumule = $avanceAnterieure + $totalCashPhysiqueRecu;
+
+                // Le montant versé sur la facture ne peut jamais dépasser le prix de la facture elle-même
+                if ($verseCumule > $montantFacture) {
+                    $vente->montant_verse = $montantFacture;
+                } else {
+                    $vente->montant_verse = $verseCumule;
+                }
+            } else {
+                // ====================================================================
+                // 👤 COMPTOIR : LOGIQUE DU CLIENT PASSAGER (SANS COMPTE BDD)
+                // ====================================================================
+                
+                // 1. Verrou strict : L'argent donné doit couvrir au moins le reste à payer
+                if ($totalCashPhysiqueRecu < $resteApyerFacture) {
+                    $manquant = $resteApyerFacture - $totalCashPhysiqueRecu;
+                    return response()->json([
+                        'success' => false,
+                        'message' => "⛔ Opération refusée ! Un client passager n'a pas droit au crédit. Le cash reçu (" . number_format($totalCashPhysiqueRecu, 0, ',', ' ') . " F) est inférieur au reste à payer (" . number_format($resteApyerFacture, 0, ',', ' ') . " F). Veuillez réclamer le complément de : " . number_format($manquant, 0, ',', ' ') . " FCFA."
+                    ], 422);
+                }
+
+                // 2. Gestion du surplus / monnaie à rendre en espèces
+                $monnaieArendre = 0;
+                if ($totalCashPhysiqueRecu > $resteApyerFacture) {
+                    $monnaieArendre = $totalCashPhysiqueRecu - $resteApyerFacture;
+                }
+
+                // Pour un client passager, la facture passe à 100% payée
+                $vente->montant_verse = $montantFacture;
+
+                $vente->statut = 'livrer'; // Le client passager n'a pas de compte, donc on ne peut pas créer de dette
+                $vente->save();
+
+                DB::commit();
+                return response()->json([
+                    'success' => true, 
+                    'message' => "Facture soldée avec succès. Monnaie à rendre : " . number_format($monnaieArendre, 0, ',', ' ') . " F."
+                ], 200);
             }
 
-            // Enregistrement de l'imputation financière sur la facture de vente
-            if ($nouveauSolde < 0) {
-                $vente->montant_verse = $montantFacture - abs($nouveauSolde); 
-            } else {
-                $vente->montant_verse = $montantFacture;
-            }
+            
+
 
             // Clôture définitive pour livraison de la boisson
             $vente->statut = 'payer'; 
@@ -994,7 +1099,7 @@ public function listeProduitsDepot()
     /**
      * 3. ACTION : Écrase l'ancien detail_ventes et réinsère proprement avec id_produit
      */
-public function sauvegarderAjustements(Request $request, $id)
+/*public function sauvegarderAjustements(Request $request, $id)
 {
     $request->validate(['lignes' => 'required|array']);
     $nouvellesLignes = $request->input('lignes');
@@ -1058,7 +1163,7 @@ public function sauvegarderAjustements(Request $request, $id)
         DB::rollBack();
         return response()->json(['success' => false, 'message' => 'Erreur de caisse : ' . $e->getMessage()], 500);
     }
-}
+}*/
 
 
 

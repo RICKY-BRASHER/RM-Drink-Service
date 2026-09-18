@@ -870,23 +870,23 @@ $(document).ready(function() {
                                 icon: 'success',
                                 showCancelButton: true,
                                 cancelButtonColor: '#6c757d',
-                                cancelButtonText: '❌ Fermer sans imprimer',
+                                
                                 showDenyButton: true,
                                 confirmButtonColor: '#198754', // Vert
                                 denyButtonColor: '#0d6efd',    // Bleu
                                 confirmButtonText: '📄 Ticket Standard (80mm)',
                                 denyButtonText: '📝 Format A5 (Demi-page)',
                                 // Ajout d'un troisième bouton personnalisé pour le format A4
-                                footer: `<button type="button" class="btn btn-secondary rounded-3 w-100 fw-bold py-2" id="swal-btn-a4" style="background-color: #6f42c1; border-color: #6f42c1;">🏢 Facture Grand Format A4 (Grossiste)</button>`
+                                footer: `<button type="button" class="btn btn-secondary rounded-3 w-100 fw-bold py-2" id="swal-btn-a4" style="background-color: #6f42c1; border-color: #6f42c1;"> Format Standard A4</button>`
                             }).then((result) => {
                                 var urlImpression = '/gestion/caisse/imprimer-pdf/' + response.vente_id;
 
                                 if (result.isConfirmed) {
                                     // Option 1 : Ticket Thermique
-                                    window.open(urlImpression + '?format=ticket', '_blank');
+                                    window.open(urlImpression + '?format=ticket', '_self');
                                 } else if (result.isDenied) {
                                     // Option 2 : Format A5
-                                    window.open(urlImpression + '?format=a5', '_blank');
+                                    window.open(urlImpression + '?format=a5', '_self');
                                 }
 
                                 // Redirection de rafraîchissement de la caisse dans tous les cas
@@ -895,7 +895,7 @@ $(document).ready(function() {
 
                             // Écouteur pour intercepter le clic sur le bouton A4 personnalisé dans le footer du SweetAlert
                             $(document).on('click', '#swal-btn-a4', function() {
-                                window.open('/gestion/caisse/imprimer-pdf/' + response.vente_id + '?format=a4', '_blank');
+                                window.open('/gestion/caisse/imprimer-pdf/' + response.vente_id + '?format=a4', '_self');
                                 Swal.close();
                                 setTimeout(function() { location.reload(); }, 1000);
                             });

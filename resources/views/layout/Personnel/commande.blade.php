@@ -19,14 +19,14 @@
 
     <!-- 📱 SYSTÈME DE ONGLETS PREMIUM POUR SÉPARER LES COMPTES DE COMPTOIR ET LES FLUX WEB -->
     <ul class="nav nav-tabs border-bottom mb-4 gap-2" id="fluxLogistiqueTabs" role="tablist" style="border-width: 2px !important;">
-        <li class="nav-item" role="presentation">
-            <button class="nav-top-tab nav-link active fw-bold px-3 py-2.5 rounded-3 position-relative" id="online-tab" data-bs-toggle="tab" data-bs-target="#online-flux" type="button" role="tab" aria-controls="online-flux" aria-selected="true" style="transition: all 0.2s;">
+       <!-- <li class="nav-item" role="presentation">
+            <button class="nav-top-tab nav-link  fw-bold px-3 py-2.5 rounded-3 position-relative" id="online-tab" data-bs-toggle="tab" data-bs-target="#online-flux" type="button" role="tab" aria-controls="online-flux" aria-selected="false" style="transition: all 0.2s;">
                 📱 Commandes Reçues en Ligne 
                 <span class="badge bg-primary ms-1 font-monospace">{{ count($commandesRecues) }}</span>
             </button>
-        </li>
+        </li> -->
         <li class="nav-item" role="presentation">
-            <button class="nav-top-tab nav-link fw-bold px-3 py-2.5 rounded-3 position-relative" id="counter-tab" data-bs-toggle="tab" data-bs-target="#counter-flux" type="button" role="tab" aria-controls="counter-flux" aria-selected="false" style="transition: all 0.2s;">
+            <button class="nav-top-tab nav-link active fw-bold px-3 py-2.5 rounded-3 position-relative" id="counter-tab" data-bs-toggle="tab" data-bs-target="#counter-flux" type="button" role="tab" aria-controls="counter-flux" aria-selected="true" style="transition: all 0.2s;">
                 ⏳ Mises en Attente au Comptoir
                 <span class="badge bg-secondary ms-1 font-monospace">{{ count($commandesEnAttente) }}</span>
             </button>
@@ -39,7 +39,7 @@
         {{-- ==================================================================== --}}
         {{-- BLOC 1 : PANNEAU DES COMMANDES REÇUES EN LIGNE (STATUT 'ENVOYER')     --}}
         {{-- ==================================================================== --}}
-        <div class="tab-pane fade show active" id="online-flux" role="tabpanel" aria-labelledby="online-tab">
+        <div class="tab-pane fade " id="online-flux" role="tabpanel" aria-labelledby="online-tab">
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                 <div class="table-responsive scrollable-table-container" style="max-height: 490px; overflow-y: auto;">
                     <table class="table table-hover align-middle mb-0">
@@ -118,7 +118,7 @@
         {{-- ==================================================================== --}}
         {{-- BLOC 2 : PANNEAU DES COMMANDES EN ATTENTE COMPTOIR (STATUT 'ATTENTE')  --}}
         {{-- ==================================================================== --}}
-        <div class="tab-pane fade" id="counter-flux" role="tabpanel" aria-labelledby="counter-tab">
+        <div class="tab-pane fade show active" id="counter-flux" role="tabpanel" aria-labelledby="counter-tab">
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                 <div class="table-responsive scrollable-table-container" style="max-height: 490px; overflow-y: auto;">
                     <table class="table table-hover align-middle mb-0" id="ordersPendingTable">

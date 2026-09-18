@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class Authentification extends Controller
 {
-    public function register_client(Request $request)
+   /* public function register_client(Request $request)
     {
         // 1. NORMALISATION DU NUMÉRO (Approche Facebook)
         if ($request->has('tel_u')) {
@@ -147,7 +147,7 @@ class Authentification extends Controller
             'success' => true,
             'redirect' => route('client.accueil')
         ], 200);
-    }
+    }*/
     public function login_pro(Request $request)
     {
         // 1. Validation de la forme de la requête

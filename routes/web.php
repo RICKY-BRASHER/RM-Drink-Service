@@ -31,12 +31,12 @@ Route::middleware(['is_admin'])->group(function () {
         Route::delete('/gestion/caisse/annuler-brouillon/{id}', [Workstocksell::class, 'annulerBrouillon']);
         // Route AJAX unique pour traiter la validation ou le refus
         Route::post('/gestion/commandes-attente/traiter/{id}', [Workstocksell::class, 'traiterCommandeEnAttente']);
-        Route::post('/gestion/commandes-recu/traiter/{id}', [Workstocksell::class, 'receptionnerCommandeEnLigne']);
+        //Route::post('/gestion/commandes-recu/traiter/{id}', [Workstocksell::class, 'receptionnerCommandeEnLigne']);
         Route::get('/gestion/caisse/imprimer-pdf/{id}', [Workstocksell::class, 'telechargerFacture'])->name('facture.pdf');
 
         Route::get('/Distrib237/secretariat/commande/recuperer-edition/{id}', [Workstocksell::class, 'recupererDonneesModification']);
         Route::get('/Distrib237/secretariat/commande/liste-produits-depot', [Workstocksell::class, 'listeProduitsDepot']);
-        Route::post('/Distrib237/secretariat/commande/sauvegarder-ajustements/{id}', [Workstocksell::class, 'sauvegarderAjustements']);
+        //Route::post('/Distrib237/secretariat/commande/sauvegarder-ajustements/{id}', [Workstocksell::class, 'sauvegarderAjustements']);
         Route::get('/gestion/produit', [PagePersonnel::class, 'showpageproduit'])->name('produit');
         Route::post('/admin/produit/store', [ActionAdd::class, 'addmodproduit'])->name('produit.store');
 
@@ -73,6 +73,7 @@ Route::middleware(['is_admin'])->group(function () {
 
     Route::get('/gestion/client', [PagePersonnel::class, 'showpageclient'])->name('client');
     Route::get('/gestion/historique', [PagePersonnel::class, 'showpagehistorique'])->name('historique');
+    Route::get('/gestion/factures/voir-archive/{id}', [PagePersonnel::class, 'afficherFactureArchivee']);
     Route::get('/gestion/stock', [PagePersonnel::class, 'showpagestock'])->name('stock'); 
     Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
 
@@ -83,7 +84,7 @@ Route::middleware(['is_admin'])->group(function () {
 });
 
 // 2. ROUTES SÉCURISÉES DE L'ESPACE CLIENT
-Route::middleware(['is_client'])->group(function () {
+/*Route::middleware(['is_client'])->group(function () {
     // Routes réservées aux clients
     
     Route::get('/Distrib237/client/transactions', [ClientShow::class,'showtransactions'])->name('client.transactions');
@@ -100,24 +101,24 @@ Route::middleware(['is_client'])->group(function () {
     Route::post('/Distrib237/client/modifier-mot-de-passe', [ClientShow::class, 'modifierMotDePasseClient']);
 
 
-});
+});*/
 
 // ROUTES PUBLIQUES : ACCESSIBLES UNIQUEMENT AUX PERSONNES NON CONNECTÉES
 Route::middleware(['guest_custom'])->group(function () {
     
     Route::get('/', [Pagecontrol::class, 'showLandingPage'])->name('LandingPage');
-    Route::get('connect_customer', [Pagecontrol::class, 'showLoginClient'])->name('login.client');
+    //Route::get('connect_customer', [Pagecontrol::class, 'showLoginClient'])->name('login.client');
     Route::get('login_pro', [Pagecontrol::class, 'showLoginForm'])->name('login.pro');
-    Route::post('register_client', [Authentification::class, 'register_client'])->name('register.client');
-    Route::post('login_client', [Authentification::class, 'login_client'])->name('login.client.submit');
+    //Route::post('register_client', [Authentification::class, 'register_client'])->name('register.client');
+    //Route::post('login_client', [Authentification::class, 'login_client'])->name('login.client.submit');
     Route::post('login_pro', [Authentification::class, 'login_pro'])->name('login.pro.submit');
     
 });
 // Route d'extinction du bloc des messages
-Route::post('/Distrib237/notification/marquer-lue/{id}', function($id) {
+/*Route::post('/Distrib237/notification/marquer-lue/{id}', function($id) {
     \Illuminate\Support\Facades\DB::table('notifications_systeme')->where('id_notif', $id)->update(['statut_lecture' => 'lu']);
     return response()->json(['success' => true]);
-});
+});*/
 
 Route::post('deconnect', [Authentification::class, 'logout'])->name('deconnect');
 

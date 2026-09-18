@@ -69,7 +69,7 @@
                     <li class="nav-item"><a class="nav-link fw-semibold px-3 text-dark" href="#epargne">Concept Épargne</a></li>
                 </ul>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('login.client') }}" class="btn btn-outline-primary px-4 fw-semibold">Espace Client</a>
+                    
                     <a href="{{ route('login.pro') }}" class="btn btn-primary px-4 fw-semibold shadow-sm">Espace Personnel</a>
                 </div>
             </div>

@@ -94,7 +94,7 @@
                                 // Calcul mathématique du reste total à rendre sur cette commande
                                 $totalResteArendre = max(0, (int)$h->total_achete - (int)$h->total_rendu);// On s'assure que le reliquat ne soit jamais négatif
                             @endphp
-                            <tr>
+                            <tr> 
                                 <!-- Date de livraison -->
                                 <td class="ps-3 small font-monospace text-muted">
                                     {{ \Carbon\Carbon::parse($h->date_livraison)->format('d/m/Y H:i') }}
@@ -104,7 +104,7 @@
                                 <td class="font-monospace text-primary fw-bold">{{ $h->code_facture }}</td>
                                 
                                 <!-- Nom du Client -->
-                                <td class="text-uppercase small fw-bold text-dark">{{ $h->nom_client }}</td>
+                                <td class="text-uppercase small fw-bold text-dark">{{ $h->nom_client  }} </td>
                                 
                                 <!-- 🍾 CELLULE DE DÉTAIL DES RENDUS PAR MARQUE -->
                                 <td>

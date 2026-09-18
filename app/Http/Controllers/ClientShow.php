@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 class ClientShow extends Controller
 {
-    public function showaccueil()
+    /*public function showaccueil()
 {
     $client = Auth::user();
     
@@ -233,7 +233,7 @@ class ClientShow extends Controller
     /**
  * Fait basculer le panier de 'brouillon' à 'envoyer' avec barrière anti-dette
  */
-    public function finaliserPanierEnvoyer(Request $request)
+   /* public function finaliserPanierEnvoyer(Request $request)
     {
         $client = auth()->user();
         
@@ -357,7 +357,6 @@ class ClientShow extends Controller
             // 📱 Notification instantanée dans la cloche du smartphone du client
             DB::table('notifications_systeme')->insert([
                 'user_id' => $client->id_u,
-                'depot_id' => $client->depot_id,
                 'titre_n' => "🔒 Sécurité : Accès mis à jour",
                 'message_n' => "Le mot de passe de votre compte de boisson Distrib237 a été modifié avec succès.",
                 'icone_n' => "bi-key-fill",
@@ -375,5 +374,5 @@ class ClientShow extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => "Erreur système : " . $e->getMessage()], 500);
         }
-    }
+    }*/
 }

@@ -31,7 +31,7 @@
                             <div class="kpi-footer mt-2"><i class="bi bi-exclamation-circle-fill text-danger"></i> En attente</div>
                         </div>
                     </div>
-                    <!-- Commandes Web -->
+                    <!-- Commandes Web --> 
                     <div class="col-sm-6 col-md-3">
                         <div class="kpi-card text-center border-success border-opacity-20">
                             <div class="kpi-value text-success fs-3 fw-bold">{{ $nbCommandesWeb }}</div>
@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        <!-- Bloc Résumé de l'Inventaire Industriel -->
+        <!-- Bloc Résumé de l'Inventaire Industriel Modifié -->
         <div class="col-xl-4 col-lg-5">
             <div class="erp-panel p-4 h-100 bg-white border rounded-4 shadow-sm">
                 <div class="border-bottom pb-2 mb-3">
@@ -69,20 +69,45 @@
                         </strong>
                     </div>
                     
-                    <!-- Ventilation détaillée par type de conditionnement (Sous-compteurs requis) -->
+                    <!-- Ventilation détaillée conditionnelle par type de conditionnement -->
                     <div class="mt-2.5 pt-2 border-top border-secondary border-opacity-30 d-flex flex-column gap-1.5" style="font-size: 0.8rem;">
-                        <div class="d-flex justify-content-between opacity-80">
-                            <span>• Casiers de 12 blles :</span>
-                            <strong class="font-monospace text-white">{{ (int)$stockCasiers12 }} cs</strong>
-                        </div>
-                        <div class="d-flex justify-content-between opacity-80">
-                            <span>• Casiers de 24 blles :</span>
-                            <strong class="font-monospace text-white">{{ (int)$stockCasiers24 }} cs</strong>
-                        </div>
-                        <div class="d-flex justify-content-between opacity-80">
-                            <span>• Bidons, Packs & Autres :</span>
-                            <strong class="font-monospace text-white">{{ (int)$stockBidonsEtAutres }} u</strong>
-                        </div>
+                        
+                        <!-- 💡 CONTRAINTE : Affiché uniquement si > 0 -->
+                        @if($stockCasiers12 > 0)
+                            <div class="d-flex justify-content-between opacity-80">
+                                <span>• Casiers de 12 blles :</span>
+                                <strong class="font-monospace text-white">{{ (int)$stockCasiers12 }} cs</strong>
+                            </div>
+                        @endif
+
+                        @if($stockCasiers24 > 0)
+                            <div class="d-flex justify-content-between opacity-80">
+                                <span>• Casiers de 24 blles :</span>
+                                <strong class="font-monospace text-white">{{ (int)$stockCasiers24 }} cs</strong>
+                            </div>
+                        @endif
+
+                        @if($stockBidons > 0)
+                            <div class="d-flex justify-content-between opacity-80">
+                                <span>• Bidons :</span>
+                                <strong class="font-monospace text-white">{{ (int)$stockBidons }} u</strong>
+                            </div>
+                        @endif
+
+                        @if($stockPacks > 0)
+                            <div class="d-flex justify-content-between opacity-80">
+                                <span>• Packs (6/12) :</span>
+                                <strong class="font-monospace text-white">{{ (int)$stockPacks }} pk</strong>
+                            </div>
+                        @endif
+
+                        @if($stockAutres > 0)
+                            <div class="d-flex justify-content-between opacity-80">
+                                <span>• Autres formats :</span>
+                                <strong class="font-monospace text-white">{{ (int)$stockAutres }} u</strong>
+                            </div>
+                        @endif
+                        
                     </div>
                 </div>
 
@@ -101,7 +126,6 @@
 
             </div>
         </div>
-
 
     </div>
 

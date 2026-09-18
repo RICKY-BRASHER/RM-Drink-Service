@@ -246,7 +246,7 @@ class ActionAdd extends Controller
             // Mode RECRUTEMENT / NOUVEAU COMPTE
             $client = new User();
             $client->mdp_u = Hash::make('drink2026'); // Mot de passe par défaut
-            $message = "Le compte client de " . $request->input('nom_u') . " a été créé. Mot de passe initial : drink2026";
+            $message = "Le compte client de " . $request->input('nom_u') . " a été créé.";
         }
         // 4. PERSISTANCE DES DONNÉES DANS LA TABLE USERS
         $client->nom_u = $request->input('nom_u');

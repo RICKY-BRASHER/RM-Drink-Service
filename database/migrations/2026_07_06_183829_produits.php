@@ -19,7 +19,7 @@ return new class extends Migration
             $table->decimal('prix_achat_p', 15, 2);
             $table->decimal('prix_p', 15, 2);
             $table->decimal('quantite_p', 15, 2)->default(0);
-            $table->integer('seuil')->default(0);
+            $table->integer('seuil')->default(20);
             $table->foreignId('id_fournisseur')
                 ->constrained('fournisseurs', 'id_fournisseur') // 💡 "id_fournisseur" est précisé ici
                 ->onDelete('cascade')

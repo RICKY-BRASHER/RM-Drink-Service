@@ -120,9 +120,12 @@
                                 <button type="button" class="btn btn-sm btn-light border view-history-btn" 
                                         data-type="Facture de Vente" 
                                         data-title="{{ $v->code_facture }}" 
-                                        data-details="Client : <b>{{ $v->client?->nom_u ?? 'Comptoir' }}</b><br>Encaissé par : <b>{{ $v->employe?->nom_u ?? 'Système' }}</b><hr>{{ $modalDetails }}">
+                                        data-details="Client : <b>{{ $v->client?->nom_u ?? 'Comptoir' }}</b><br>Encaissé par : <b>{{ $v->employe?->nom_u ?? 'Système' }}</b><hr>{{ $modalDetails }}"
+                                        {{-- 💡 TRANSMISSION DE L'URL DU PDF (Vaut null si le fichier n'existe pas) --}}
+                                        data-pdf="{{ $v->url_pdf }}">
                                     <i class="bi bi-eye-fill text-secondary"></i>
                                 </button>
+
                             </td>
                         </tr> 
                     @endforeach
@@ -271,16 +274,27 @@ $(document).ready(function() {
 
     // 4. APERÇU NET DE LA PIÈCE COMPTABLE DANS LA FENÊTRE MODAL CORRIGÉ
     $(document).on('click', '.view-history-btn', function() {
-        var opType = $(this).attr('data-type');
-        var title = $(this).attr('data-title');
-        var details = $(this).attr('data-details'); // Extrait le texte HTML pré-calculé par Laravel sans conflits
+        var btn = $(this);
+        var urlPdf = btn.data('pdf'); // Récupération du lien PDF
 
-        $('#modalOpType').text(opType);
-        $('#modalDocTitle').text(title);
-        $('#modalContentTarget').html(details); // Injection propre du HTML
+        // 💡 CONDITION CHIRURGICALE : Si le PDF existe, on redirige de façon sécurisée
+        if (urlPdf && urlPdf !== "") {
+            // window.location.replace ouvre sur la même page et bloque le retour abusif en arrière
+            window.location.replace(urlPdf);
+        } else {
+            // 🔄 SINON : Si aucun PDF n'est enregistré, on ouvre ton ancienne modal de détails
+            var type = btn.data('type');
+            var title = btn.data('title');
+            var details = btn.data('details');
 
-        $('#historyViewModal').modal('show');
+            // (Insère ici ton ancien code jQuery qui remplissait et ouvrait ta modal de détails)
+            // Exemple générique :
+            $('#historyModalTitle').text(type + ' : ' + title);
+            $('#historyModalBody').html(details);
+            $('#historyDetailModal').modal('show');
+        }
     });
+
 
 });
 </script>

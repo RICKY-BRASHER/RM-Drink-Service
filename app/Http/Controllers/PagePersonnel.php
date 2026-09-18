@@ -9,6 +9,7 @@ use App\Models\Fournisseur;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage; 
 class PagePersonnel extends Controller
 {
      public function showpagedashboard()
@@ -54,7 +55,7 @@ class PagePersonnel extends Controller
             ->join('users', 'ventes.client_id', '=', 'users.id_u') // Jointure sur id_u
             ->where('users.depot_id', $depotId)
             ->whereDate('ventes.created_at', $today)
-            ->whereIn('ventes.statut', ['attente', 'payer'])
+            ->whereIn('ventes.statut', ['attente', 'payer','livrer'])
             ->sum('detail_ventes.quantite');
 
         // ----------------------------------------------------------------
@@ -63,34 +64,44 @@ class PagePersonnel extends Controller
         
         $depotId = auth()->user()->depot_id;
 
-        // 1. Somme des casiers de 12 bouteilles (Ex: format_p contient '12' ou 'casier 12')
+        // Compteur 1 : Casiers de 12
         $stockCasiers12 = DB::table('produits')
             ->where('depot_id', $depotId)
             ->where(function($query) {
                 $query->where('format_p', 'LIKE', '%12%')
-                      ->orWhere('format_p', 'LIKE', '%casier%');
-            })
-            ->sum('quantite_p');
+                      ->orWhere('format_p', 'LIKE', '%casier 12%');
+            })->sum('quantite_p');
 
-        // 2. Somme des casiers de 24 bouteilles (Ex: format_p contient '24')
+        // Compteur 2 : Casiers de 24
         $stockCasiers24 = DB::table('produits')
             ->where('depot_id', $depotId)
             ->where('format_p', 'LIKE', '%24%')
             ->sum('quantite_p');
 
-        // 3. Somme des bidons / fûts / PET (Ex: format_p contient 'bidon', 'fut' ou 'pet')
-        $stockBidonsEtAutres = DB::table('produits')
+        // Compteur 3 : Uniquement les Bidons / Fûts
+        $stockBidons = DB::table('produits')
+            ->where('depot_id', $depotId)
+            ->where('format_p', 'LIKE', '%bidon%')
+            ->sum('quantite_p');
+
+        // Compteur 4 : Uniquement les Packs (ex: Pack 6)
+        $stockPacks = DB::table('produits')
+            ->where('depot_id', $depotId)
+            ->where('format_p', 'LIKE', '%pack%')
+            ->sum('quantite_p');
+
+        // Compteur 5 : Autres formats marginaux s'il y en a
+        $stockAutres = DB::table('produits')
             ->where('depot_id', $depotId)
             ->where(function($query) {
-                $query->where('format_p', 'LIKE', '%bidon%')
-                      ->orWhere('format_p', 'LIKE', '%fut%')
-                      ->orWhere('format_p', 'LIKE', '%pack%');
-            })
-            ->sum('quantite_p');
-        // 5. Quantité totale de boissons actuellement en rayon au dépôt
-        $totalStockPhysique = DB::table('produits')
-            ->where('depot_id', $depotId)
-            ->sum('quantite_p');
+                $query->where('format_p', 'NOT LIKE', '%12%')
+                      ->where('format_p', 'NOT LIKE', '%24%')
+                      ->where('format_p', 'NOT LIKE', '%bidon%')
+                      ->where('format_p', 'NOT LIKE', '%pack%');
+            })->sum('quantite_p');
+
+        // Grand total physique
+        $totalStockPhysique = DB::table('produits')->where('depot_id', $depotId)->sum('quantite_p');
 
         // 6. Boissons Attendues (Somme des entrées du jour)
         $totalApprovisionneJour = DB::table('detail_approvisionnements')
@@ -120,7 +131,7 @@ class PagePersonnel extends Controller
             ->where('users.depot_id', $depotId)
             ->whereMonth('ventes.created_at', $currentMonth)
             ->whereYear('ventes.created_at', $currentYear)
-            ->whereIn('ventes.statut', ['attente', 'payer'])
+            ->whereIn('ventes.statut', ['attente', 'payer', 'livrer'])
             ->select('produits.nom_p', 'produits.format_p', DB::raw('SUM(detail_ventes.quantite) as total_vendu'))
             ->groupBy('produits.id_produit', 'produits.nom_p', 'produits.format_p')
             ->orderBy('total_vendu', 'desc')
@@ -140,7 +151,7 @@ class PagePersonnel extends Controller
             ->where('users.depot_id', $depotId)
             ->whereMonth('ventes.created_at', $currentMonth)
             ->whereYear('ventes.created_at', $currentYear)
-            ->whereIn('ventes.statut', [ 'payer'])
+            ->whereIn('ventes.statut', [ 'payer', 'livrer'])
             ->sum('ventes.montant_total');
 
         // 2. Crédits (Dettes) Cumulés sur le mois en cours (La part non payée des factures)
@@ -150,7 +161,7 @@ class PagePersonnel extends Controller
             ->where('users.depot_id', $depotId)
             ->whereMonth('ventes.created_at', $currentMonth)
             ->whereYear('ventes.created_at', $currentYear)
-            ->whereIn('ventes.statut', ['payer'])
+            ->whereIn('ventes.statut', ['payer', 'livrer'])
             ->select(DB::raw('SUM(montant_total - montant_verse) as total_credits'))
             ->first()->total_credits ?? 0;
 
@@ -166,7 +177,7 @@ class PagePersonnel extends Controller
         $clientsFideles = DB::table('ventes')
             ->join('users', 'ventes.client_id', '=', 'users.id_u') // Jointure sur id_u
             ->where('users.depot_id', $depotId)
-            ->whereIn('ventes.statut', ['payer'])
+            ->whereIn('ventes.statut', ['payer', 'livrer'])
             ->select(
                 'users.nom_u',
                 'users.tel_u',          // 💡 Correction ici : 'tel_u' au lieu de 'telephone_u'
@@ -183,7 +194,7 @@ class PagePersonnel extends Controller
             ->join('ventes', 'detail_ventes.vente_id', '=', 'ventes.id')
             ->join('produits', 'detail_ventes.produit_id', '=', 'produits.id_produit')
             ->join('fournisseurs', 'produits.id_fournisseur', '=', 'fournisseurs.id_fournisseur')
-            ->whereIn('ventes.statut', ['attente', 'payer']) // On prend aussi les attentes comptoir pour alimenter le graphe
+            ->whereIn('ventes.statut', ['attente', 'payer', 'livrer']) // On prend aussi les attentes comptoir pour alimenter le graphe
             ->whereMonth('ventes.created_at', Carbon::now()->month)
             ->whereYear('ventes.created_at', Carbon::now()->year)
             ->select('fournisseurs.nom_fournisseur', DB::raw('SUM(detail_ventes.quantite) as volume_total'))
@@ -206,8 +217,8 @@ class PagePersonnel extends Controller
         return view('layout.Personnel.dashboard', compact(
             'caJournalier', 'nbDettesJour', 'nbCommandesWeb', 'volumeVenduesJour',
             'totalStockPhysique', 'totalApprovisionneJour', 'nbRuptures', 'totalReferences',
-            'topVentes', 'clientsFideles', 'stockCasiers12', 'stockCasiers24', 'stockBidonsEtAutres', 'caMensuelBrut', 'creditsMensuels', 'cashEncaisseMensuel',
-            'tauxLiquidite', 'labelsFournisseurs', 'donneesVentes'
+            'topVentes', 'clientsFideles', 'stockCasiers12', 'stockCasiers24', 'caMensuelBrut', 'creditsMensuels', 'cashEncaisseMensuel',
+            'tauxLiquidite', 'labelsFournisseurs', 'donneesVentes','stockBidons','stockAutres','stockPacks'
         ));
     }
     public function showpageclient()
@@ -312,12 +323,26 @@ class PagePersonnel extends Controller
             // L'employé ne récupère STRICTEMENT que les ventes liées à des clients de son dépôt
             $ventes = Vente::with(['client.depot', 'employe', 'detailVentes.produit'])
                 ->whereIn('statut', ['livrer', 'payer', 'annuler'])
-                ->whereHas('client', function($query) use ($depotId) {
+                ->whereHas('employe', function($query) use ($depotId) {
                     $query->where('depot_id', $depotId);
                 })
                 ->orderBy('created_at', 'desc')
                 ->get();
+
+            
         }
+        $ventes->map(function($vente) {
+            $nomFichier = 'facture_' . $vente->code_facture . '.pdf';
+            $cheminFichier = 'public/factures/' . $nomFichier;
+
+            // Si le PDF existe sur le serveur, on génère son URL d'accès direct
+            if (Storage::exists($cheminFichier)) {
+                $vente->url_pdf = asset('storage/factures/' . $nomFichier);
+            } else {
+                $vente->url_pdf = null;
+            }
+            return $vente;
+        });
 
         return view('layout.Personnel.historique', compact('approvisionnements', 'ventes', 'depots'));
     }
@@ -431,5 +456,25 @@ class PagePersonnel extends Controller
         // 🚨 LE CORRECTIF ICI : On injecte les deux variables attendues par la vue me-1
         return view('layout.Personnel.commande', compact('commandesRecues', 'commandesEnAttente'));
     }
+    public function afficherFactureArchivee($id)
+{
+    $vente = Vente::findOrFail($id);
+    $nomFichier = 'facture_' . $vente->code_facture . '.pdf';
     
+    // 💡 CHEMIN SUR-MESURE : On pointe exactement vers ton dossier actuel
+    $cheminFichier = 'private/public/factures/' . $nomFichier;
+
+    if (!Storage::exists($cheminFichier)) {
+        abort(404, "Le fichier de la facture n'existe pas dans les archives.");
+    }
+
+    // Récupère le chemin physique absolu du fichier sur le serveur
+    $cheminAbsolu = Storage::path($cheminFichier);
+
+    // Renvoyer le fichier directement à l'écran de manière étanche
+    return response()->file($cheminAbsolu, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="' . $nomFichier . '"'
+    ]);
+}
 }

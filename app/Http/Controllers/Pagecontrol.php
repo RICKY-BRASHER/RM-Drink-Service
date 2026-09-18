@@ -13,10 +13,10 @@ class Pagecontrol extends Controller
     {
         return view('layout.landing');
     }
-    public function showLoginClient(){
+    /*public function showLoginClient(){
         $depot = Depot::all();// Récupère tous les dépôts de la table 'depot'
         return view('auth.client.connect', compact('depot'));
-    }
+    }*/
     public function showLoginForm()
     {
         return view('auth.personnel.loginpro');
@@ -45,7 +45,7 @@ class Pagecontrol extends Controller
         // Flux 2 : Somme de l'argent réel encaissé au guichet pour les ventes du jour
         $totalVentesCashJour = DB::table('ventes')
             ->whereDate('created_at', $today)
-            ->whereIn('statut', ['attente', 'payer']) // On prend les ventes soldées et les acomptes des ventes en attente
+            ->whereIn('statut', ['attente', 'payer','livrer']) // On prend les ventes soldées et les acomptes des ventes en attente
             ->sum('montant_verse');
 
         // 🧮 TOTAL UNIFIÉ : Trésorerie brute entrée aujourd'hui dans tout le réseau Distrib237
@@ -62,7 +62,7 @@ class Pagecontrol extends Controller
         $totalVentesCashMois = DB::table('ventes')
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)
-            ->whereIn('statut', ['attente', 'payer'])
+            ->whereIn('statut', ['attente', 'payer','livrer']) // On prend les ventes soldées et les acomptes des ventes en attente
             ->sum('montant_verse');
 
         // 🧮 TOTAL UNIFIÉ MENSUEL
@@ -98,7 +98,7 @@ class Pagecontrol extends Controller
                     WHERE users.depot_id = depots.id 
                       AND MONTH(ventes.created_at) = {$currentMonth} 
                       AND YEAR(ventes.created_at) = {$currentYear} 
-                      AND ventes.statut IN ('attente', 'payer')
+                      AND ventes.statut IN ('attente', 'payer','livrer')
                 ), 0) as total_ventes_depot"),
 
                 // 💡 SOUS-REQUÊTE FINANCIÈRE 2 : Calcul des recharges pures du mois pour ce dépôt
@@ -136,7 +136,7 @@ class Pagecontrol extends Controller
             ->join('fournisseurs', 'produits.id_fournisseur', '=', 'fournisseurs.id_fournisseur')
             ->whereMonth('ventes.created_at', $currentMonth)
             ->whereYear('ventes.created_at', $currentYear)
-            ->whereIn('ventes.statut', ['attente', 'payer'])
+            ->whereIn('ventes.statut', ['attente', 'payer','livrer']) // On prend les ventes soldées et les acomptes des ventes en attente
             ->select('fournisseurs.nom_fournisseur', DB::raw('SUM(detail_ventes.quantite) as volume_vendu')) // nom_fournisseur selon votre structure
             ->groupBy('fournisseurs.id_fournisseur', 'fournisseurs.nom_fournisseur')
             ->orderBy('volume_vendu', 'desc')
@@ -149,7 +149,7 @@ class Pagecontrol extends Controller
         $topAcheteursNationaux = DB::table('ventes')
             ->join('users', 'ventes.client_id', '=', 'users.id_u')
             ->join('depots', 'users.depot_id', '=', 'depots.id')
-            ->whereIn('ventes.statut', ['attente', 'payer'])
+            ->whereIn('ventes.statut', ['attente', 'payer','livrer'])
             ->select(
                 'users.nom_u',
                 'users.tel_u',          // tel_u de votre BDD
