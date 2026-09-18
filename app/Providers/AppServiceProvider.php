@@ -100,9 +100,17 @@ class AppServiceProvider extends ServiceProvider
                     ->where('ventes.statut', 'attente')
                     ->count();
 
+                //3. Nombre total de livraisons en cours (Statut 'payer') pour son dépôt
+                $compteurLivraisonEnCours = DB::table('ventes')
+                    ->join('users', 'ventes.client_id', '=', 'users.id_u')
+                    ->where('users.depot_id', $user->depot_id)
+                    ->where('ventes.statut', 'payer')
+                    ->count();
+
                 // On partage ces compteurs avec les vues Blade
                 $view->with('compteurWebEnvoyer', $compteurWebEnvoyer);
                 $view->with('compteurComptoirAttente', $compteurComptoirAttente);
+                $view->with('compteurLivraisonEnCours', $compteurLivraisonEnCours);
                 // Envoi des deux flux indépendants aux structures HTML
                 $view->with('notificationsAlertes', $notificationsAlertes);
                 $view->with('notificationsMessages', $notificationsMessages);
@@ -112,6 +120,7 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('notificationsMessages', collect());
                 $view->with('compteurWebEnvoyer', 0);
                 $view->with('compteurComptoirAttente', 0);
+                $view->with('compteurLivraisonEnCours', 0);
             }
         });
         $this->configureDefaults();

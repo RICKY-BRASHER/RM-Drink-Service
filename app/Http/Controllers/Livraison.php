@@ -35,7 +35,7 @@ public function indexLivraisons()
         ->get();
 
         // 2. 📜 HISTORIQUE CONSOLIDÉ : Filtrage strict sur le mot "casier" pour isoler les consignes
-            // 2. 📜 HISTORIQUE CONSOLIDÉ : Version corrigée pour MariaDB sans bug de parenthèses
+        // 2. 📜 HISTORIQUE CONSOLIDÉ : Version 100% Corrigée sans erreur 1111 MariaDB
     $historiqueRetours = DB::table('retours_casiers')
         ->join('ventes', 'retours_casiers.vente_id', '=', 'ventes.id')
         ->join('users as clients', 'retours_casiers.client_id', '=', 'clients.id_u')
@@ -56,18 +56,32 @@ public function indexLivraisons()
             // Somme brute des casiers initialement achetés
             DB::raw("(SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN produits p ON dv.produit_id = p.id_produit WHERE dv.vente_id = ventes.id AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')) as total_achete"),
             
-                       // 💡 REQUÊTE ULTIME : Génération de sous-badges HTML individuels brasserie par brasserie
+            // 💡 RESOLUTION ERREUR 1111 : On utilise CONCAT combiné à une sous-requête isolée par fournisseur pour éviter le conflit d'agrégation
+            DB::raw("
+                (SELECT GROUP_CONCAT(CONCAT(CAST(total_fourn.qte_f AS SIGNED), ' ', total_fourn.nom_f) SEPARATOR ' | ')
+                 FROM (
+                     SELECT dv2.vente_id, f2.id_fournisseur, UPPER(f2.nom_fournisseur) as nom_f, SUM(dv2.quantite) as qte_f
+                     FROM detail_ventes dv2
+                     JOIN produits p2 ON dv2.produit_id = p2.id_produit
+                     JOIN fournisseurs f2 ON p2.id_fournisseur = f2.id_fournisseur
+                     WHERE (p2.format_p LIKE '%casier%' OR p2.format_p LIKE '%cs%')
+                     GROUP BY dv2.vente_id, f2.id_fournisseur, f2.nom_fournisseur
+                 ) as total_fourn
+                 WHERE total_fourn.vente_id = ventes.id) as detail_attendus_text
+            "),
+            
+            // Requête tricolore chirurgicale pour le reliquat / reste à rendre
             DB::raw("
                 GROUP_CONCAT(
                     CONCAT(
                         '<span class=\"fw-bold font-monospace ',
                         IF(
                             (IFNULL((SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN produits p ON dv.produit_id = p.id_produit WHERE dv.vente_id = ventes.id AND p.id_fournisseur = fournisseurs.id_fournisseur AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')), 0) - retours_casiers.quantite_rendue) > 0,
-                            'text-danger', -- 🔴 Rouge si le client doit (Dette)
+                            'text-danger', 
                             IF(
                                 (IFNULL((SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN produits p ON dv.produit_id = p.id_produit WHERE dv.vente_id = ventes.id AND p.id_fournisseur = fournisseurs.id_fournisseur AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')), 0) - retours_casiers.quantite_rendue) < 0,
-                                'text-success', -- 🟢 Vert si le client a un surplus (Avance)
-                                'text-muted' -- ⚪ Gris neutre si c'est égal à 0
+                                'text-success', 
+                                'text-muted' 
                             )
                         ),
                         '\">',
@@ -82,12 +96,12 @@ public function indexLivraisons()
                     ) SEPARATOR ' <span class=\"text-secondary mx-1\">|</span> '
                 ) as detail_restant_text
             ")
-
         )
         ->groupBy('ventes.id', 'ventes.code_facture', 'ventes.updated_at', 'clients.nom_u')
         ->orderBy('ventes.updated_at', 'desc')
         ->take(20)
         ->get();
+
 
 
 

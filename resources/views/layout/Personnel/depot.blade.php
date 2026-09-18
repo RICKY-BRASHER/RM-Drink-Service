@@ -71,6 +71,9 @@
                 <a href="{{ route('transaction') }}" class="menu-item {{ Route::is('transaction') ? 'active' : '' }}">
                     <span class="nav-icon">🪙</span> <span>Transaction Monetaire</span>
                 </a>
+                <a href="{{ route('promotions.index') }}" class="menu-item {{ Route::is('promotions.index') ? 'active' : '' }}">
+                    <span class="nav-icon">🏷️</span> <span>Promotions</span>
+                </a>
             @elseif(Auth::user()->role_u === 'employe')
                 <a href="{{ route('commandes') }}" class="menu-item {{ Route::is('commandes') ? 'active' : '' }} d-flex align-items-center justify-content-between w-100">
                     <div class="d-flex align-items-center gap-2">
@@ -97,11 +100,21 @@
                                 {{ $compteurComptoirAttente }}
                             </span>
                         @endif
+
+                        
                     </div>
                 </a>
                 <a href="/Distrib237/caissier/livraisons" class="menu-item {{ Request::is('*livraison*') ? 'active' : '' }} d-flex align-items-center gap-2 w-100">
                     <span class="nav-icon">🚚</span> 
                     <span>Livraisons</span> 
+                    <!-- 🔵 Badge Bleu : Livraisons en cours -->
+                    @if(isset($compteurLivraisonEnCours) && $compteurLivraisonEnCours > 0)
+                        <span class="badge rounded-circle bg-primary font-monospace d-flex align-items-center justify-content-center" 
+                            style="width: 18px; height: 18px; font-size: 0.68rem; font-weight: bold; padding: 0;" 
+                            title="{{ $compteurLivraisonEnCours }} livraison(s) en cours">
+                            {{ $compteurLivraisonEnCours }}
+                        </span>
+                    @endif
                 </a>
             @endif
 
@@ -126,7 +139,7 @@
             <form id="logout-form" action="{{ route('deconnect') }}" method="POST" class="d-none">@csrf</form>
         </div>
     </aside>
-
+ 
     <!-- ZONE DE TRAVAIL DROITE (BARRE SUPÉRIEURE + CONTENU) -->
     <div class="erp-container">
         

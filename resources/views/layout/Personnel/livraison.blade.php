@@ -82,8 +82,9 @@
                             <th class="ps-3">Date</th>
                             <th>Code Facture</th>
                             <th>Acheteur</th>
+                            <th>Casier Attendu</th>
                             <th>Détails des Restitutions</th>
-                            <th class="text-center">Total Rendu</th>
+                            
                             <th>Dettes / Surplus Casiers</th>
                             <th class="text-center">Statut</th>
                         </tr>
@@ -105,7 +106,11 @@
                                 
                                 <!-- Nom du Client -->
                                 <td class="text-uppercase small fw-bold text-dark">{{ $h->nom_client  }} </td>
-                                
+                                <td>
+                                    <span class="text-dark font-monospace fw-semibold" style="font-size: 0.82rem;">
+                                        📥 {{ $h->detail_attendus_text ?? 'Aucun casier' }}
+                                    </span>
+                                </td>
                                 <!-- 🍾 CELLULE DE DÉTAIL DES RENDUS PAR MARQUE -->
                                 <td>
                                     <span class="text-secondary font-monospace" style="font-size: 0.82rem;">
@@ -113,10 +118,7 @@
                                     </span>
                                 </td>
                                 
-                                <!-- Volume Global Rendu -->
-                                <td class="text-center fw-bold font-monospace text-primary" style="font-size: 0.9rem;">
-                                    {{ $h->total_rendu }} cs
-                                </td>
+                                
                                 
                                 <!-- 🚨 CELLULE TRICOLORE INDÉPENDANTE : S'ADAPTE CHIRURGICALEMENT AU MIXTE SANS CONFLIT -->
                                 <td>

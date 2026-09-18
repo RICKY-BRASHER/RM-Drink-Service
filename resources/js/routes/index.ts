@@ -290,7 +290,7 @@ dashboard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     dashboard.form = dashboardForm
 /**
 * @see \App\Http\Controllers\PagePersonnel::commandes
- * @see app/Http/Controllers/PagePersonnel.php:436
+ * @see app/Http/Controllers/PagePersonnel.php:435
  * @route '/gestion/personnel/commandes'
  */
 export const commandes = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -305,7 +305,7 @@ commandes.definition = {
 
 /**
 * @see \App\Http\Controllers\PagePersonnel::commandes
- * @see app/Http/Controllers/PagePersonnel.php:436
+ * @see app/Http/Controllers/PagePersonnel.php:435
  * @route '/gestion/personnel/commandes'
  */
 commandes.url = (options?: RouteQueryOptions) => {
@@ -314,7 +314,7 @@ commandes.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\PagePersonnel::commandes
- * @see app/Http/Controllers/PagePersonnel.php:436
+ * @see app/Http/Controllers/PagePersonnel.php:435
  * @route '/gestion/personnel/commandes'
  */
 commandes.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -323,7 +323,7 @@ commandes.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 /**
 * @see \App\Http\Controllers\PagePersonnel::commandes
- * @see app/Http/Controllers/PagePersonnel.php:436
+ * @see app/Http/Controllers/PagePersonnel.php:435
  * @route '/gestion/personnel/commandes'
  */
 commandes.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -333,7 +333,7 @@ commandes.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
     /**
 * @see \App\Http\Controllers\PagePersonnel::commandes
- * @see app/Http/Controllers/PagePersonnel.php:436
+ * @see app/Http/Controllers/PagePersonnel.php:435
  * @route '/gestion/personnel/commandes'
  */
     const commandesForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -343,7 +343,7 @@ commandes.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
             /**
 * @see \App\Http\Controllers\PagePersonnel::commandes
- * @see app/Http/Controllers/PagePersonnel.php:436
+ * @see app/Http/Controllers/PagePersonnel.php:435
  * @route '/gestion/personnel/commandes'
  */
         commandesForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -352,7 +352,7 @@ commandes.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
         })
             /**
 * @see \App\Http\Controllers\PagePersonnel::commandes
- * @see app/Http/Controllers/PagePersonnel.php:436
+ * @see app/Http/Controllers/PagePersonnel.php:435
  * @route '/gestion/personnel/commandes'
  */
         commandesForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -368,7 +368,7 @@ commandes.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     commandes.form = commandesForm
 /**
 * @see \App\Http\Controllers\PagePersonnel::vente
- * @see app/Http/Controllers/PagePersonnel.php:399
+ * @see app/Http/Controllers/PagePersonnel.php:398
  * @route '/gestion/ventes'
  */
 export const vente = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -383,7 +383,7 @@ vente.definition = {
 
 /**
 * @see \App\Http\Controllers\PagePersonnel::vente
- * @see app/Http/Controllers/PagePersonnel.php:399
+ * @see app/Http/Controllers/PagePersonnel.php:398
  * @route '/gestion/ventes'
  */
 vente.url = (options?: RouteQueryOptions) => {
@@ -392,7 +392,7 @@ vente.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\PagePersonnel::vente
- * @see app/Http/Controllers/PagePersonnel.php:399
+ * @see app/Http/Controllers/PagePersonnel.php:398
  * @route '/gestion/ventes'
  */
 vente.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -401,7 +401,7 @@ vente.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 /**
 * @see \App\Http\Controllers\PagePersonnel::vente
- * @see app/Http/Controllers/PagePersonnel.php:399
+ * @see app/Http/Controllers/PagePersonnel.php:398
  * @route '/gestion/ventes'
  */
 vente.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -411,7 +411,7 @@ vente.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
     /**
 * @see \App\Http\Controllers\PagePersonnel::vente
- * @see app/Http/Controllers/PagePersonnel.php:399
+ * @see app/Http/Controllers/PagePersonnel.php:398
  * @route '/gestion/ventes'
  */
     const venteForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -421,7 +421,7 @@ vente.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
             /**
 * @see \App\Http\Controllers\PagePersonnel::vente
- * @see app/Http/Controllers/PagePersonnel.php:399
+ * @see app/Http/Controllers/PagePersonnel.php:398
  * @route '/gestion/ventes'
  */
         venteForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -430,7 +430,7 @@ vente.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
         })
             /**
 * @see \App\Http\Controllers\PagePersonnel::vente
- * @see app/Http/Controllers/PagePersonnel.php:399
+ * @see app/Http/Controllers/PagePersonnel.php:398
  * @route '/gestion/ventes'
  */
         venteForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -446,7 +446,7 @@ vente.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     vente.form = venteForm
 /**
 * @see \App\Http\Controllers\PagePersonnel::produit
- * @see app/Http/Controllers/PagePersonnel.php:349
+ * @see app/Http/Controllers/PagePersonnel.php:348
  * @route '/gestion/produit'
  */
 export const produit = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -461,7 +461,7 @@ produit.definition = {
 
 /**
 * @see \App\Http\Controllers\PagePersonnel::produit
- * @see app/Http/Controllers/PagePersonnel.php:349
+ * @see app/Http/Controllers/PagePersonnel.php:348
  * @route '/gestion/produit'
  */
 produit.url = (options?: RouteQueryOptions) => {
@@ -470,7 +470,7 @@ produit.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\PagePersonnel::produit
- * @see app/Http/Controllers/PagePersonnel.php:349
+ * @see app/Http/Controllers/PagePersonnel.php:348
  * @route '/gestion/produit'
  */
 produit.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -479,7 +479,7 @@ produit.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 /**
 * @see \App\Http\Controllers\PagePersonnel::produit
- * @see app/Http/Controllers/PagePersonnel.php:349
+ * @see app/Http/Controllers/PagePersonnel.php:348
  * @route '/gestion/produit'
  */
 produit.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -489,7 +489,7 @@ produit.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
     /**
 * @see \App\Http\Controllers\PagePersonnel::produit
- * @see app/Http/Controllers/PagePersonnel.php:349
+ * @see app/Http/Controllers/PagePersonnel.php:348
  * @route '/gestion/produit'
  */
     const produitForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -499,7 +499,7 @@ produit.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
             /**
 * @see \App\Http\Controllers\PagePersonnel::produit
- * @see app/Http/Controllers/PagePersonnel.php:349
+ * @see app/Http/Controllers/PagePersonnel.php:348
  * @route '/gestion/produit'
  */
         produitForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -508,7 +508,7 @@ produit.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
         })
             /**
 * @see \App\Http\Controllers\PagePersonnel::produit
- * @see app/Http/Controllers/PagePersonnel.php:349
+ * @see app/Http/Controllers/PagePersonnel.php:348
  * @route '/gestion/produit'
  */
         produitForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -992,7 +992,7 @@ historique.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     historique.form = historiqueForm
 /**
 * @see \App\Http\Controllers\PagePersonnel::stock
- * @see app/Http/Controllers/PagePersonnel.php:369
+ * @see app/Http/Controllers/PagePersonnel.php:368
  * @route '/gestion/stock'
  */
 export const stock = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -1007,7 +1007,7 @@ stock.definition = {
 
 /**
 * @see \App\Http\Controllers\PagePersonnel::stock
- * @see app/Http/Controllers/PagePersonnel.php:369
+ * @see app/Http/Controllers/PagePersonnel.php:368
  * @route '/gestion/stock'
  */
 stock.url = (options?: RouteQueryOptions) => {
@@ -1016,7 +1016,7 @@ stock.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\PagePersonnel::stock
- * @see app/Http/Controllers/PagePersonnel.php:369
+ * @see app/Http/Controllers/PagePersonnel.php:368
  * @route '/gestion/stock'
  */
 stock.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -1025,7 +1025,7 @@ stock.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 /**
 * @see \App\Http\Controllers\PagePersonnel::stock
- * @see app/Http/Controllers/PagePersonnel.php:369
+ * @see app/Http/Controllers/PagePersonnel.php:368
  * @route '/gestion/stock'
  */
 stock.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -1035,7 +1035,7 @@ stock.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
     /**
 * @see \App\Http\Controllers\PagePersonnel::stock
- * @see app/Http/Controllers/PagePersonnel.php:369
+ * @see app/Http/Controllers/PagePersonnel.php:368
  * @route '/gestion/stock'
  */
     const stockForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -1045,7 +1045,7 @@ stock.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
             /**
 * @see \App\Http\Controllers\PagePersonnel::stock
- * @see app/Http/Controllers/PagePersonnel.php:369
+ * @see app/Http/Controllers/PagePersonnel.php:368
  * @route '/gestion/stock'
  */
         stockForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -1054,7 +1054,7 @@ stock.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
         })
             /**
 * @see \App\Http\Controllers\PagePersonnel::stock
- * @see app/Http/Controllers/PagePersonnel.php:369
+ * @see app/Http/Controllers/PagePersonnel.php:368
  * @route '/gestion/stock'
  */
         stockForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -1202,7 +1202,7 @@ deconnect.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     
     deconnect.form = deconnectForm
 /**
- * @see routes/web.php:125
+ * @see routes/web.php:134
  * @route '/action'
  */
 export const home = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -1216,7 +1216,7 @@ home.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
- * @see routes/web.php:125
+ * @see routes/web.php:134
  * @route '/action'
  */
 home.url = (options?: RouteQueryOptions) => {
@@ -1224,7 +1224,7 @@ home.url = (options?: RouteQueryOptions) => {
 }
 
 /**
- * @see routes/web.php:125
+ * @see routes/web.php:134
  * @route '/action'
  */
 home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -1232,7 +1232,7 @@ home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     method: 'get',
 })
 /**
- * @see routes/web.php:125
+ * @see routes/web.php:134
  * @route '/action'
  */
 home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -1241,7 +1241,7 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
     /**
- * @see routes/web.php:125
+ * @see routes/web.php:134
  * @route '/action'
  */
     const homeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -1250,7 +1250,7 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     })
 
             /**
- * @see routes/web.php:125
+ * @see routes/web.php:134
  * @route '/action'
  */
         homeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -1258,7 +1258,7 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
             method: 'get',
         })
             /**
- * @see routes/web.php:125
+ * @see routes/web.php:134
  * @route '/action'
  */
         homeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

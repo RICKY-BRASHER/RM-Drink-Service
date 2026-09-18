@@ -294,6 +294,8 @@ class Workstocksell extends Controller
             return response()->json(['success' => false, 'message' => 'Stock insuffisant.'], 422);
         }
 
+        
+
         DB::beginTransaction();
         try {
             
@@ -581,13 +583,14 @@ class Workstocksell extends Controller
         
         // 1. Définition du nom unique du fichier et du dossier cible
         $nomFichier = 'facture_' . $vente->code_facture . '.pdf';
-        $cheminDossier = 'public/factures/'; // Pointe vers storage/app/public/factures/
+        $cheminDossier = 'public/factures/'; // Pointe vers storage/app/public/factures/ 
         
         // 2. Extraction du flux binaire brut généré par DomPDF
         $fluxPdfContenu = $pdf->output();
         
         // 3. Écriture physique sécurisée du fichier dans le stockage local
-        Storage::put($cheminDossier . $nomFichier, $fluxPdfContenu);
+        Storage::disk('public')->put('factures/' . $nomFichier, $fluxPdfContenu);
+
 
         // ====================================================================
 
@@ -967,11 +970,20 @@ public function traiterCommandeEnAttente(Request $request, $id_facture)
                 ], 200);
             }
 
-            
+            // Vérifie si la commande contient au moins un produit dont le format est "casier 12" ou "casier 24"
+            $contientCasiers = $vente->detailVentes->contains(function ($detail) {
+                $format = strtolower($detail->produit->format_p);
+                return $format === 'casier 12' || $format === 'casier 24';
+            });
 
+            // Si aucun casier n’est présent → statut passe directement à "livrer"
+            if (!$contientCasiers) {
+                $vente->statut = 'livrer';
+            } else {
+                // Sinon, on laisse le statut en "valider" pour attendre le retour des casiers
+                $vente->statut = 'valider';
+            }
 
-            // Clôture définitive pour livraison de la boisson
-            $vente->statut = 'payer'; 
             $vente->save();
 
             // 📱 FLUX 1 : Émission immédiate du reçu numérique sur le smartphone du client

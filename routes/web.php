@@ -10,6 +10,7 @@ use App\Http\Controllers\DeleteOpt;
 use App\Http\Controllers\PagePersonnel;
 use App\Http\Controllers\ActionAdd;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PromotionController;
 
 
 // ==========================================
@@ -69,6 +70,14 @@ Route::middleware(['is_admin'])->group(function () {
         Route::post('/Distrib237/admin/depots/supprimer/{id}', [DeleteOpt::class, 'detruireDepotPhysique']);
         Route::post('/Distrib237/admin/utilisateurs/supprimer/{id}', [DeleteOpt::class, 'deleteuser']);
         Route::post('/Distrib237/admin/produits/supprimer/{id}', [DeleteOpt::class, 'deleteproduit']);
+
+        // 🏷️ MODULE DE GESTION DES PROMOTIONS COMPTOIR & EN LIGNE
+        Route::get('/Distrib237/admin/promotions', [PromotionController::class, 'index'])->name('promotions.index');
+        Route::post('/Distrib237/admin/promotions/creer', [PromotionController::class, 'store'])->name('promotions.store');
+        Route::delete('/Distrib237/admin/promotions/supprimer/{id}', [PromotionController::class, 'destroy'])->name('promotions.destroy');
+        Route::post('/Distrib237/admin/promotions/toggle/{id}', [PromotionController::class, 'toggleStatut'])->name('promotions.toggle');
+
+
     });
 
     Route::get('/gestion/client', [PagePersonnel::class, 'showpageclient'])->name('client');

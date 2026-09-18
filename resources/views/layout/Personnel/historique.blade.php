@@ -174,14 +174,16 @@
                                 </td>
                                 
                                 <td class="text-center">
-                                    <!-- Mise à jour des attributs data de la modal pour l'audit fournisseur -->
-                                    <button type="button" class="btn btn-sm btn-light border view-history-btn" 
+                                    <button type="button" 
+                                            class="btn btn-sm btn-light border view-history-btn" 
                                             data-type="BON GLOBAL D'ENTRÉE MAGASIN" 
                                             data-title="BON N°{{ $app->id_app }}" 
-                                            data-details="Fournisseur : <b>{{ strtoupper($app->nom_fournisseur) }}</b><br>Dépôt de livraison : <b>{{ $app->nom_depot }}</b><br>Volume total reçu : <b>{{ $app->total_boissons }} produits</b><hr><div class='text-start'>{{ $modalDetailsHtml }}</div>">
+                                            data-details="Fournisseur : <b>{{ strtoupper($app->nom_fournisseur) }}</b><br>Dépôt de livraison : <b>{{ $app->nom_depot }}</b><br>Volume total reçu : <b>{{ $app->total_boissons }} produits</b><hr><div class='text-start'>{{ $modalDetailsHtml }}</div>" 
+                                            data-pdf="{{ $app->url_pdf }}">
                                         <i class="bi bi-eye-fill text-secondary"></i>
                                     </button>
                                 </td>
+
                             </tr>
                         @endforeach
                     @endif
@@ -277,23 +279,22 @@ $(document).ready(function() {
         var btn = $(this);
         var urlPdf = btn.data('pdf'); // Récupération du lien PDF
 
-        // 💡 CONDITION CHIRURGICALE : Si le PDF existe, on redirige de façon sécurisée
         if (urlPdf && urlPdf !== "") {
-            // window.location.replace ouvre sur la même page et bloque le retour abusif en arrière
-            window.location.replace(urlPdf);
+            // Ouvrir le PDF dans un nouvel onglet
+            window.open(urlPdf, '_blank');
         } else {
-            // 🔄 SINON : Si aucun PDF n'est enregistré, on ouvre ton ancienne modal de détails
+            // Sinon, afficher la modal de détails
             var type = btn.data('type');
             var title = btn.data('title');
             var details = btn.data('details');
 
-            // (Insère ici ton ancien code jQuery qui remplissait et ouvrait ta modal de détails)
-            // Exemple générique :
-            $('#historyModalTitle').text(type + ' : ' + title);
-            $('#historyModalBody').html(details);
-            $('#historyDetailModal').modal('show');
+            $('#modalOpType').text(type);
+            $('#modalDocTitle').text(title);
+            $('#modalContentTarget').html(details);
+            $('#historyViewModal').modal('show');
         }
     });
+
 
 
 });

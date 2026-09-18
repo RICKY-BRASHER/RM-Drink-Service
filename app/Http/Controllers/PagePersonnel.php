@@ -333,10 +333,9 @@ class PagePersonnel extends Controller
         }
         $ventes->map(function($vente) {
             $nomFichier = 'facture_' . $vente->code_facture . '.pdf';
-            $cheminFichier = 'public/factures/' . $nomFichier;
+            $cheminFichier = 'factures/' . $nomFichier;
 
-            // Si le PDF existe sur le serveur, on génère son URL d'accès direct
-            if (Storage::exists($cheminFichier)) {
+            if (Storage::disk('public')->exists($cheminFichier)) {
                 $vente->url_pdf = asset('storage/factures/' . $nomFichier);
             } else {
                 $vente->url_pdf = null;
