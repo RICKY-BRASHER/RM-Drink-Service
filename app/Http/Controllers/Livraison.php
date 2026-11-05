@@ -114,7 +114,7 @@ class Livraison extends Controller
             ->orderBy('nom_u')
             ->get(['id_u', 'nom_u']);
 
-        return view('layout.personnel.livraison', compact(
+        return view('layout.Personnel.livraison', compact(
             'commandesAPreparer',
             'historiqueRetours',
             'retoursLibres',

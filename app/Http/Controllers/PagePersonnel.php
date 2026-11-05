@@ -259,7 +259,7 @@ class PagePersonnel extends Controller
         ->orderBy('users.nom_u', 'asc')
         ->get();
 
-    return view('layout.personnel.client', compact('clients'));
+    return view('layout.Personnel.client', compact('clients'));
 
     }
     public function showpagehistorique()
