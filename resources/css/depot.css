@@ -86,13 +86,34 @@ body.erp-body {
     justify-content: space-between;
     align-items: center;
 }
-.logout-link {
-    color: #94a3b8;
-    font-size: 1.2rem;
-    transition: color 0.2s ease;
+.logout-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.08);
+    color: #fca5a5;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
-.logout-link:hover {
-    color: #ef4444;
+.logout-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(248, 113, 113, 0.65);
+    background: rgba(239, 68, 68, 0.18);
+    color: #fff;
+}
+.logout-button:focus-visible {
+    outline: 2px solid #fca5a5;
+    outline-offset: 3px;
+}
+.logout-button:disabled {
+    cursor: wait;
+    opacity: 0.75;
 }
 
 /* 2. ARCHITECTURE DE LA ZONE DE TRAVAIL (BARRE SUPÉRIEURE) */

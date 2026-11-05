@@ -133,9 +133,10 @@
                 <strong class="text-white d-block small">{{ auth()->user()->nom_u ?? 'Takougang D.' }}</strong>
                 <span class="text-primary text-uppercase font-monospace" style="font-size: 0.65rem;">{{ auth()->user()->role_u ?? 'Admin' }}</span>
             </div>
-            <a href="{{ route('deconnect') }}" class="logout-link" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                <i class="bi bi-power"></i>
-            </a>
+            <button type="button" class="logout-button" id="logoutButton" aria-label="Se déconnecter">
+                <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                <span>Déconnexion</span>
+            </button>
             <form id="logout-form" action="{{ route('deconnect') }}" method="POST" class="d-none">@csrf</form>
         </div>
     </aside>
@@ -297,6 +298,25 @@
             $('#sidebarToggleBtn').on('click', function(e) {
                 e.stopPropagation();
                 $('.erp-sidebar').toggleClass('open');
+            });
+            $('#logoutButton').on('click', function() {
+                Swal.fire({
+                    title: 'Se déconnecter ?',
+                    text: 'Votre session sera fermée en toute sécurité.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Oui, me déconnecter',
+                    cancelButtonText: 'Rester connecté',
+                    confirmButtonColor: '#dc3545',
+                    reverseButtons: true
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        const button = document.getElementById('logoutButton');
+                        button.disabled = true;
+                        button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Déconnexion…</span>';
+                        document.getElementById('logout-form').requestSubmit();
+                    }
+                });
             });
             // Ferme automatiquement la barre latérale si on clique n'importe où en dehors sur l'écran mobile
             $(document).on('click', function(e) {

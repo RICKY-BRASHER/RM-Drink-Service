@@ -48,5 +48,9 @@ class Vente extends Model
     {
         return $this->belongsTo(User::class, 'employe_id', 'id_u');
     }
-}
 
+    public function retoursCasiers()
+    {
+        return $this->hasMany(RetourCasier::class, 'vente_id', 'id');
+    }
+}

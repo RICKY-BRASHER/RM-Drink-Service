@@ -77,8 +77,7 @@
         "post-update-cmd": [
             "@php artisan route:clear",
             "@php artisan config:clear",
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
-            "@php artisan migrate --force"
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ],
 
         "post-root-package-install": [

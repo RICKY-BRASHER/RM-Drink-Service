@@ -1,260 +1,312 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Produit;
-use App\Models\User;
-use Illuminate\Http\Request;
-use App\Models\Depot;
-use App\Models\Vente;
-use App\Models\DetailVente;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use App\Models\RetourCasier;
+
 use App\Models\Fournisseur;
-use Illuminate\Support\Facades\Session;
+use App\Models\RetourCasier;
+use App\Models\User;
+use App\Models\Vente;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
 class Livraison extends Controller
 {
-    
+    public function indexLivraisons()
+    {
+        $depotId = (int) auth()->user()->depot_id;
 
-/**
- * 🚚 PAGE CENTRALE : Affiche l'interface unifiée des Livraisons
- */
-public function indexLivraisons()
-{
-    $depotId = auth()->user()->depot_id;
+        $commandesAPreparer = Vente::with(['client', 'detailVentes.produit.fournisseur'])
+            ->where('statut', 'payer')
+            ->whereHas('employe', fn ($query) => $query->where('depot_id', $depotId))
+            ->orderBy('updated_at')
+            ->get();
 
-    // 1. Charger les factures PAYÉES (Prêtes à sortir du quai)
-    $commandesAPreparer = Vente::with(['client', 'detailVentes.produit.fournisseur'])
-        ->join('users', 'ventes.client_id', '=', 'users.id_u')
-        ->where('users.depot_id', $depotId)
-        ->where('ventes.statut', 'payer')
-        ->select('ventes.*')
-        ->orderBy('ventes.updated_at', 'asc')
-        ->get();
+        $retoursLiees = RetourCasier::with('fournisseur')
+            ->where('depot_id', $depotId)
+            ->whereNotNull('vente_id')
+            ->latest()
+            ->get()
+            ->groupBy('vente_id');
 
-        // 2. 📜 HISTORIQUE CONSOLIDÉ : Filtrage strict sur le mot "casier" pour isoler les consignes
-        // 2. 📜 HISTORIQUE CONSOLIDÉ : Version 100% Corrigée sans erreur 1111 MariaDB
-    $historiqueRetours = DB::table('retours_casiers')
-        ->join('ventes', 'retours_casiers.vente_id', '=', 'ventes.id')
-        ->join('users as clients', 'retours_casiers.client_id', '=', 'clients.id_u')
-        ->join('fournisseurs', 'retours_casiers.fournisseur_id', '=', 'fournisseurs.id_fournisseur')
-        ->where('retours_casiers.depot_id', $depotId)
-        ->select(
-            'ventes.id as id_vente',
-            'ventes.code_facture',
-            'ventes.updated_at as date_livraison',
-            'clients.nom_u as nom_client',
-            
-            // Somme brute des casiers rendus
-            DB::raw('SUM(retours_casiers.quantite_rendue) as total_rendu'),
-            
-            // Composition du texte d'audit des rendus
-            DB::raw("GROUP_CONCAT(CONCAT(retours_casiers.quantite_rendue, ' ', UPPER(fournisseurs.nom_fournisseur)) SEPARATOR ' | ') as detail_rendus_text"),
-            
-            // Somme brute des casiers initialement achetés
-            DB::raw("(SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN produits p ON dv.produit_id = p.id_produit WHERE dv.vente_id = ventes.id AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')) as total_achete"),
-            
-            // 💡 RESOLUTION ERREUR 1111 : On utilise CONCAT combiné à une sous-requête isolée par fournisseur pour éviter le conflit d'agrégation
-            DB::raw("
-                (SELECT GROUP_CONCAT(CONCAT(CAST(total_fourn.qte_f AS SIGNED), ' ', total_fourn.nom_f) SEPARATOR ' | ')
-                 FROM (
-                     SELECT dv2.vente_id, f2.id_fournisseur, UPPER(f2.nom_fournisseur) as nom_f, SUM(dv2.quantite) as qte_f
-                     FROM detail_ventes dv2
-                     JOIN produits p2 ON dv2.produit_id = p2.id_produit
-                     JOIN fournisseurs f2 ON p2.id_fournisseur = f2.id_fournisseur
-                     WHERE (p2.format_p LIKE '%casier%' OR p2.format_p LIKE '%cs%')
-                     GROUP BY dv2.vente_id, f2.id_fournisseur, f2.nom_fournisseur
-                 ) as total_fourn
-                 WHERE total_fourn.vente_id = ventes.id) as detail_attendus_text
-            "),
-            
-            // Requête tricolore chirurgicale pour le reliquat / reste à rendre
-            DB::raw("
-                GROUP_CONCAT(
-                    CONCAT(
-                        '<span class=\"fw-bold font-monospace ',
-                        IF(
-                            (IFNULL((SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN produits p ON dv.produit_id = p.id_produit WHERE dv.vente_id = ventes.id AND p.id_fournisseur = fournisseurs.id_fournisseur AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')), 0) - retours_casiers.quantite_rendue) > 0,
-                            'text-danger', 
-                            IF(
-                                (IFNULL((SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN produits p ON dv.produit_id = p.id_produit WHERE dv.vente_id = ventes.id AND p.id_fournisseur = fournisseurs.id_fournisseur AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')), 0) - retours_casiers.quantite_rendue) < 0,
-                                'text-success', 
-                                'text-muted' 
-                            )
-                        ),
-                        '\">',
-                        IF(
-                            (IFNULL((SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN produits p ON dv.produit_id = p.id_produit WHERE dv.vente_id = ventes.id AND p.id_fournisseur = fournisseurs.id_fournisseur AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')), 0) - retours_casiers.quantite_rendue) < 0,
-                            CONCAT('+', ABS(CAST(IFNULL((SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN produits p ON dv.produit_id = p.id_produit WHERE dv.vente_id = ventes.id AND p.id_fournisseur = fournisseurs.id_fournisseur AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')), 0) - retours_casiers.quantite_rendue AS SIGNED))),
-                            CAST(IFNULL((SELECT SUM(dv.quantite) FROM detail_ventes dv JOIN produits p ON dv.produit_id = p.id_produit WHERE dv.vente_id = ventes.id AND p.id_fournisseur = fournisseurs.id_fournisseur AND (p.format_p LIKE '%casier%' OR p.format_p LIKE '%cs%')), 0) - retours_casiers.quantite_rendue AS SIGNED)
-                        ),
-                        ' ',
-                        UPPER(fournisseurs.nom_fournisseur),
-                        '</span>'
-                    ) SEPARATOR ' <span class=\"text-secondary mx-1\">|</span> '
-                ) as detail_restant_text
-            ")
-        )
-        ->groupBy('ventes.id', 'ventes.code_facture', 'ventes.updated_at', 'clients.nom_u')
-        ->orderBy('ventes.updated_at', 'desc')
-        ->take(20)
-        ->get();
+        $ventesAvecRetours = Vente::with(['client', 'detailVentes.produit.fournisseur'])
+            ->whereIn('id', $retoursLiees->keys())
+            ->get()
+            ->keyBy('id');
 
+        $historiqueRetours = $retoursLiees
+            ->map(function (Collection $retours, $venteId) use ($ventesAvecRetours) {
+                $vente = $ventesAvecRetours->get($venteId);
+                if (!$vente) {
+                    return null;
+                }
 
+                $rendusParFournisseur = $retours->groupBy('fournisseur_id')
+                    ->map(fn (Collection $rows) => (int) $rows->sum('quantite_rendue'));
+                $attendusParFournisseur = $vente->detailVentes
+                    ->filter(fn ($detail) => $detail->produit
+                        && preg_match('/casier|\\bcs\\b/i', $detail->produit->format_p))
+                    ->groupBy(fn ($detail) => $detail->produit->id_fournisseur)
+                    ->map(fn (Collection $rows) => (int) floor($rows->sum('quantite')));
 
+                $supplierIds = $attendusParFournisseur->keys()
+                    ->merge($rendusParFournisseur->keys())
+                    ->unique();
+                $supplierNames = Fournisseur::whereIn('id_fournisseur', $supplierIds)
+                    ->pluck('nom_fournisseur', 'id_fournisseur');
 
+                $detailsAttendus = $attendusParFournisseur->map(
+                    fn ($quantity, $supplierId) => $quantity . ' ' . strtoupper($supplierNames->get($supplierId, 'Fournisseur'))
+                )->implode(' | ');
+                $detailsRendus = $rendusParFournisseur->map(
+                    fn ($quantity, $supplierId) => $quantity . ' ' . strtoupper($supplierNames->get($supplierId, 'Fournisseur'))
+                )->implode(' | ');
+                $detailsRestants = $supplierIds->map(function ($supplierId) use (
+                    $attendusParFournisseur,
+                    $rendusParFournisseur,
+                    $supplierNames
+                ) {
+                    $expected = (int) $attendusParFournisseur->get($supplierId, 0);
+                    $returned = (int) $rendusParFournisseur->get($supplierId, 0);
+                    $difference = $expected - $returned;
+                    $status = $difference > 0
+                        ? $difference . ' à rendre'
+                        : ($difference < 0 ? '+' . abs($difference) . ' surplus' : 'soldé');
 
-    // 3. Récupérer la liste des brasseries pour le formulaire de retour libre
-    $fournisseurs = DB::table('fournisseurs')->select('id_fournisseur', 'nom_fournisseur')->get();
+                    return strtoupper($supplierNames->get($supplierId, 'Fournisseur')) . ' : ' . $status;
+                })->implode(' | ');
 
-    return view('layout.personnel.livraison', compact('commandesAPreparer', 'historiqueRetours', 'fournisseurs'));
-}
+                return (object) [
+                    'id_vente' => $vente->id,
+                    'code_facture' => $vente->code_facture,
+                    'date_livraison' => $vente->updated_at,
+                    'nom_client' => $vente->client?->nom_u ?? 'Client comptoir',
+                    'total_rendu' => $rendusParFournisseur->sum(),
+                    'detail_rendus_text' => $detailsRendus ?: 'Aucun casier rendu',
+                    'total_achete' => $attendusParFournisseur->sum(),
+                    'detail_attendus_text' => $detailsAttendus ?: 'Aucun casier vendu',
+                    'detail_restant_text' => $detailsRestants ?: 'Aucun casier consigné',
+                ];
+            })
+            ->filter()
+            ->sortByDesc('date_livraison')
+            ->take(20)
+            ->values();
 
-/**
- * ⚡ BOUCLE DYNAMIQUE : Traite le changement de statut 'livrer' et enregistre les lignes de retours
- */
-public function validerLivraisonEtRetourCasiers(Request $request, $id_vente)
-{
-    // Le formulaire envoie un tableau associatif 'rendus' où la clé est l'ID du fournisseur (ex: rendus[1] = 5)
-    $request->validate([
-        'rendus' => 'required|array',
-        'rendus.*' => 'required|numeric|min:0'
-    ]);
+        $retoursLibres = DB::table('retours_casiers')
+            ->leftJoin('users as clients', 'retours_casiers.client_id', '=', 'clients.id_u')
+            ->join('fournisseurs', 'retours_casiers.fournisseur_id', '=', 'fournisseurs.id_fournisseur')
+            ->where('retours_casiers.depot_id', $depotId)
+            ->whereNull('retours_casiers.vente_id')
+            ->orderByDesc('retours_casiers.created_at')
+            ->limit(30)
+            ->get([
+                'retours_casiers.id_rc',
+                'retours_casiers.quantite_rendue',
+                'retours_casiers.created_at',
+                'clients.nom_u as nom_client',
+                'fournisseurs.nom_fournisseur',
+            ]);
 
-    $vente = Vente::with('detailVentes.produit')->find($id_vente);
-    if (!$vente || $vente->statut !== 'payer') {
-        return response()->json(['success' => false, 'message' => 'Cette commande n\'est pas en attente de sortie.'], 404);
+        $fournisseurs = Fournisseur::orderBy('nom_fournisseur')->get();
+        $clients = User::query()
+            ->where('role_u', 'client')
+            ->orderBy('nom_u')
+            ->get(['id_u', 'nom_u']);
+
+        return view('layout.personnel.livraison', compact(
+            'commandesAPreparer',
+            'historiqueRetours',
+            'retoursLibres',
+            'fournisseurs',
+            'clients'
+        ));
     }
 
-    DB::beginTransaction();
-    try {
-        $userStaff = auth()->user();
-        $inputsRendus = $request->input('rendus', []); // Tableau [id_fournisseur => quantite]
-        $totalCasiersRendusCeJour = 0;
-
-        // 🔄 LA BOUCLE INTELLIGENTE : On parcourt chaque saisie de retour faite par la secrétaire
-        foreach ($inputsRendus as $idFournisseur => $quantiteRendue) {
-            $quantiteRendue = (float)$quantiteRendue;
-
-            // Si pour ce fournisseur le client a ramené au moins 1 casier, on crée l'enregistrement dédié
-            if ($quantiteRendue > 0) {
-                // 1. Insertion d'une ligne d'historique normalisée propre
-                DB::table('retours_casiers')->insert([
-                    'client_id'       => $vente->client_id,
-                    'employe_id'      => $userStaff->id_u,
-                    'depot_id'        => $userStaff->depot_id,
-                    'fournisseur_id'  => $idFournisseur,
-                    'vente_id'        => $vente->id, // Lié directement à cette vente
-                    'quantite_rendue' => $quantiteRendue,
-                    'created_at'      => now(),
-                    'updated_at'      => now()
-                ]);
-
-                // 2. Augmentation en temps réel du stock physique de vides de cette brasserie au dépôt
-                DB::table('fournisseurs')
-                    ->where('id_fournisseur', $idFournisseur)
-                    ->increment('stock_vides_f', $quantiteRendue);
-
-                $totalCasiersRendusCeJour += $quantiteRendue;
-            }
-        }
-
-        // 3. Clôture logistique définitive de la facture de vente
-        $vente->statut = 'livrer';
-        $vente->updated_at = now();
-        $vente->save();
-
-        // 4. Émettre un signalement dans la cloche du smartphone du client
-        DB::table('notifications_systeme')->insert([
-            'user_id'    => $vente->client_id,
-            'depot_id'   => $userStaff->depot_id,
-            'titre_n'    => "🚚 Commande Récupérée",
-            'message_n'  => "Le bon " . $vente->code_facture . " a été sorti du quai. Total casiers vides restitués : " . $totalCasiersRendusCeJour . " cs. Fiche logistique à jour.",
-            'icone_n'    => "bi-truck",
-            'couleur_n'  => "text-info",
-            'created_at' => now(),
-            'updated_at' => now()
+    public function validerLivraisonEtRetourCasiers(Request $request, $id_vente)
+    {
+        $data = $request->validate([
+            'rendus' => 'required|array',
+            'rendus.*' => 'required|integer|min:0',
         ]);
 
-        DB::commit();
-        return response()->json([
-            'success' => true,
-            'message' => "Sortie de quai validée ! Statut mis à jour et " . $totalCasiersRendusCeJour . " ligne(s) d'emballages enregistrée(s)."
-        ], 200);
+        return DB::transaction(function () use ($data, $id_vente) {
+            $userStaff = auth()->user();
+            $depotId = (int) $userStaff->depot_id;
+            $vente = Vente::query()
+                ->where('statut', 'payer')
+                ->whereHas('employe', fn ($query) => $query->where('depot_id', $depotId))
+                ->lockForUpdate()
+                ->find($id_vente);
 
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json(['success' => false, 'message' => 'Erreur de boucle logistique : ' . $e->getMessage()], 500);
-    }
-}
+            if (!$vente) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette facture est déjà livrée, non payée ou rattachée à un autre dépôt.',
+                ], 404);
+            }
 
-public function enregistrerRetourLibreCasiers(Request $request)
-{
-    $request->validate([
-        'client_id' => 'required|exists:users,id_u',
-        'rendus' => 'required|array',
-        'rendus.*' => 'required|integer|min:0'
-    ]);
+            $fournisseurIds = array_map('intval', array_keys($data['rendus']));
+            if (Fournisseur::whereIn('id_fournisseur', $fournisseurIds)->count() !== count(array_unique($fournisseurIds))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Un fournisseur sélectionné est introuvable.',
+                ], 422);
+            }
 
-    $clientId = $request->input('client_id');
-    $inputsRendus = $request->input('rendus', []);
-    $userStaff = auth()->user();
-    $totalCasiersRendus = 0;
+            $totalRendu = 0;
+            foreach ($data['rendus'] as $fournisseurId => $quantite) {
+                $quantite = (int) $quantite;
+                if ($quantite === 0) {
+                    continue;
+                }
 
-    DB::beginTransaction();
-    try {
-        // Boucle d'enregistrement dynamique en lignes formulée suivant ta vision
-        foreach ($inputsRendus as $idFournisseur => $quantiteRendue) {
-            $quantiteRendue = (int)$quantiteRendue;
-
-            if ($quantiteRendue > 0) {
-                // 1. Insertion de la ligne au grand livre avec vente_id = NULL
                 DB::table('retours_casiers')->insert([
-                    'client_id'       => $clientId,
-                    'employe_id'      => $userStaff->id_u,
-                    'depot_id'        => $userStaff->depot_id,
-                    'fournisseur_id'  => $idFournisseur,
-                    'vente_id'        => null, // 💡 Retour libre pur sans achat lié
-                    'quantite_rendue' => $quantiteRendue,
-                    'created_at'      => now(),
-                    'updated_at'      => now()
+                    'client_id' => $vente->client_id,
+                    'employe_id' => $userStaff->id_u,
+                    'depot_id' => $depotId,
+                    'fournisseur_id' => (int) $fournisseurId,
+                    'vente_id' => $vente->id,
+                    'quantite_rendue' => $quantite,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
 
-                // 2. Incrémentation immédiate du stock de vides de cette brasserie au dépôt
-                DB::table('fournisseurs')
-                    ->where('id_fournisseur', $idFournisseur)
-                    ->increment('stock_vides_f', $quantiteRendue);
+                Fournisseur::where('id_fournisseur', $fournisseurId)
+                    ->lockForUpdate()
+                    ->firstOrFail()
+                    ->increment('stock_vides_f', $quantite);
 
-                $totalCasiersRendus += $quantiteRendue;
+                DB::table('fournisseur_depot_stocks')->insertOrIgnore([
+                    'depot_id' => $depotId,
+                    'fournisseur_id' => (int) $fournisseurId,
+                    'stock_vides' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                DB::table('fournisseur_depot_stocks')
+                    ->where('depot_id', $depotId)
+                    ->where('fournisseur_id', $fournisseurId)
+                    ->increment('stock_vides', $quantite, ['updated_at' => now()]);
+
+                $totalRendu += $quantite;
             }
-        }
 
-        if ($totalCasiersRendus > 0) {
-            // 3. Émission de l'accusé de réception sur le smartphone du client
-            DB::table('notifications_systeme')->insert([
-                'user_id'    => $clientId,
-                'depot_id'   => $userStaff->depot_id,
-                'titre_n'    => "🔄 Restitution d'emballages",
-                'message_n'  => "Le dépôt a validé la réception de " . $totalCasiersRendus . " casier(s) vide(s) déposé(s) au comptoir. Vos fiches de reliquats ont été recalculées.",
-                'icone_n'    => "bi-arrow-left-right",
-                'couleur_n'  => "text-success",
-                'created_at' => now(),
-                'updated_at' => now()
+            $vente->update(['statut' => 'livrer']);
+
+            if ($vente->client_id) {
+                DB::table('notifications_systeme')->insert([
+                    'user_id' => $vente->client_id,
+                    'depot_id' => $depotId,
+                    'titre_n' => 'Commande récupérée',
+                    'message_n' => "Le bon {$vente->code_facture} a quitté le dépôt. Casiers reçus : {$totalRendu}.",
+                    'icone_n' => 'bi-truck',
+                    'couleur_n' => 'text-info',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Sortie de quai validée. {$totalRendu} casier(s) enregistré(s) au dépôt.",
             ]);
+        });
+    }
+
+    public function enregistrerRetourLibreCasiers(Request $request)
+    {
+        $data = $request->validate([
+            'client_id' => 'nullable|integer|exists:users,id_u',
+            'rendus' => 'required|array',
+            'rendus.*' => 'required|integer|min:0',
+        ]);
+
+        $fournisseurIds = array_map('intval', array_keys($data['rendus']));
+        if (Fournisseur::whereIn('id_fournisseur', $fournisseurIds)->count() !== count(array_unique($fournisseurIds))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Un fournisseur sélectionné est introuvable.',
+            ], 422);
         }
 
-        DB::commit();
-        Session::flash('success', "Restitution de " . $totalCasiersRendus . " emballage(s) enregistrée au grand livre logistique !");
-        return response()->json([
-            'success' => true,
-            'message' => "Restitution de " . $totalCasiersRendus . " emballage(s) enregistrée au grand livre logistique !"
-        ], 200);
+        $totalRendu = array_sum(array_map('intval', $data['rendus']));
+        if ($totalRendu < 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Saisissez au moins un casier à restituer.',
+            ], 422);
+        }
 
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json(['success' => false, 'message' => 'Erreur lors du déchargement : ' . $e->getMessage()], 500);
+        return DB::transaction(function () use ($data, $fournisseurIds, $totalRendu) {
+            $userStaff = auth()->user();
+            $clientId = $data['client_id'] ?? null;
+            $client = $clientId
+                ? User::query()
+                    ->where('role_u', 'client')
+                    ->lockForUpdate()
+                    ->find($clientId)
+                : null;
+
+            if ($clientId && !$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le compte client est introuvable.',
+                ], 422);
+            }
+
+            foreach ($data['rendus'] as $fournisseurId => $quantite) {
+                $quantite = (int) $quantite;
+                if ($quantite === 0) {
+                    continue;
+                }
+
+                DB::table('retours_casiers')->insert([
+                    'client_id' => $client?->id_u,
+                    'employe_id' => $userStaff->id_u,
+                    'depot_id' => $userStaff->depot_id,
+                    'fournisseur_id' => (int) $fournisseurId,
+                    'vente_id' => null,
+                    'quantite_rendue' => $quantite,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                Fournisseur::where('id_fournisseur', $fournisseurId)
+                    ->lockForUpdate()
+                    ->firstOrFail()
+                    ->increment('stock_vides_f', $quantite);
+
+                DB::table('fournisseur_depot_stocks')->insertOrIgnore([
+                    'depot_id' => $userStaff->depot_id,
+                    'fournisseur_id' => (int) $fournisseurId,
+                    'stock_vides' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                DB::table('fournisseur_depot_stocks')
+                    ->where('depot_id', $userStaff->depot_id)
+                    ->where('fournisseur_id', $fournisseurId)
+                    ->increment('stock_vides', $quantite, ['updated_at' => now()]);
+            }
+
+            if ($client) {
+                DB::table('notifications_systeme')->insert([
+                    'user_id' => $client->id_u,
+                    'depot_id' => $userStaff->depot_id,
+                    'titre_n' => 'Restitution d’emballages',
+                    'message_n' => "Le dépôt a enregistré la réception de {$totalRendu} casier(s) vide(s).",
+                    'icone_n' => 'bi-arrow-left-right',
+                    'couleur_n' => 'text-success',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Restitution de {$totalRendu} casier(s) enregistrée au dépôt.",
+            ]);
+        });
     }
-}
 }

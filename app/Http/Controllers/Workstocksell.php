@@ -12,6 +12,8 @@ use App\Models\DetailVente;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use App\Services\PromotionService;
+use Illuminate\Validation\ValidationException;
 
 class Workstocksell extends Controller
 {
@@ -133,14 +135,29 @@ class Workstocksell extends Controller
 
         // 2. VALIDATION DES ENTRÉES
         $request->validate([
-            'id_fournisseur' => 'required|integer',
-            'depot_id' => 'required|integer',
-            'stocks' => 'required|array'
+            'id_fournisseur' => 'required|integer|exists:fournisseurs,id_fournisseur',
+            'depot_id' => 'required|integer|exists:depots,id',
+            'stocks' => 'required|array|min:1',
+            'stocks.*' => 'required|integer|min:0',
         ]);
 
         $depotId = $request->input('depot_id');
         $idFournisseur = $request->input('id_fournisseur');
         $stocksSaisis = $request->input('stocks');
+        $produitIds = array_keys($stocksSaisis);
+        $produits = Produit::query()
+            ->where('depot_id', $depotId)
+            ->where('id_fournisseur', $idFournisseur)
+            ->whereIn('id_produit', $produitIds)
+            ->get()
+            ->keyBy('id_produit');
+
+        if ($produits->count() !== count($produitIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Un ou plusieurs produits ne correspondent pas au fournisseur et au dépôt sélectionnés.',
+            ], 422);
+        }
 
         // 💡 ÉTAPE ÉLIMINATOIRE : On filtre et on calcule le total AVANT toute écriture SQL
         $totalBouteilles = 0;
@@ -178,22 +195,21 @@ class Workstocksell extends Controller
 
             // 4. ENREGISTREMENT DES DÉTAILS ET DES STOCKS PHYSICQUES
             foreach ($lignesValides as $id_produit => $quantite) {
-                $produit = Produit::find($id_produit);
+                $produit = Produit::query()
+                    ->where('depot_id', $depotId)
+                    ->where('id_fournisseur', $idFournisseur)
+                    ->lockForUpdate()
+                    ->findOrFail($id_produit);
+                $produit->quantite_p += $quantite;
+                $produit->save();
 
-                if ($produit) {
-                    // A. Augmentation du stock physique réel
-                    $produit->quantite_p += $quantite;
-                    $produit->save();
-
-                    // B. Écriture de la ligne de traçabilité dans l'historique détaillé
-                    DB::table('detail_approvisionnements')->insert([
-                        'approvisionnement_id' => $id_app,
-                        'produit_id' => $id_produit,
-                        'quantite_ajoutee' => $quantite,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
+                DB::table('detail_approvisionnements')->insert([
+                    'approvisionnement_id' => $id_app,
+                    'produit_id' => $id_produit,
+                    'quantite_ajoutee' => $quantite,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
             }
 
             DB::commit();
@@ -281,120 +297,220 @@ class Workstocksell extends Controller
         }
     }
 
-    public function ajouterArticle(Request $request)
+    public function ajouterArticle(Request $request, PromotionService $promotionService)
     {
-        $produitId    = $request->input('produit_id');
-        $quantite     = (float)$request->input('quantite');
-        $prixUnitaire = (float)$request->input('prix_unitaire');
-        $totalLigne   = $quantite * $prixUnitaire;
-        $employeId    = Auth::user()->id_u; // 💡 On capture le caissier connecté
+        $data = $request->validate([
+            'produit_id' => 'required|integer|exists:produits,id_produit',
+            'quantite' => 'required|numeric|min:0.25',
+            'client_id' => 'required|string',
+            'vente_id' => 'nullable|integer',
+        ]);
 
-        $produit = Produit::find($produitId);
-        if (!$produit || $produit->quantite_p < $quantite) {
-            return response()->json(['success' => false, 'message' => 'Stock insuffisant.'], 422);
+        $user = Auth::user();
+        $quantite = (float) $data['quantite'];
+        $fraction = round($quantite - floor($quantite), 2);
+
+        if (!in_array($fraction, [0.00, 0.25, 0.50, 0.75], true)) {
+            throw ValidationException::withMessages([
+                'quantite' => 'Seuls les casiers entiers, demi-casiers, quarts ou trois-quarts sont autorisés.',
+            ]);
         }
 
-        
+        if ($data['client_id'] !== 'walkin') {
+            $clientExists = User::query()
+                ->where('id_u', $data['client_id'])
+                ->where('role_u', 'client')
+                ->where('depot_id', $user->depot_id)
+                ->exists();
 
-        DB::beginTransaction();
-        try {
-            
-            $venteId = $request->input('vente_id');
-            if (!empty($venteId)) {
-                // 💡 SÉCURITÉ COMPTABLE : On cherche si la boisson existe déjà dans ce brouillon
-                $articleExiste = DB::table('detail_ventes')
-                    ->where('vente_id', $venteId)
-                    ->where('produit_id', $produitId)
+            if (!$clientExists) {
+                throw ValidationException::withMessages([
+                    'client_id' => 'Le client sélectionné n’appartient pas à ce dépôt.',
+                ]);
+            }
+        }
+
+        return DB::transaction(function () use ($data, $user, $quantite, $promotionService) {
+            $product = Produit::query()
+                ->where('depot_id', $user->depot_id)
+                ->lockForUpdate()
+                ->find($data['produit_id']);
+
+            if (!$product) {
+                throw ValidationException::withMessages([
+                    'produit_id' => 'Cette référence ne fait pas partie du dépôt affecté.',
+                ]);
+            }
+
+            $sale = null;
+            if (!empty($data['vente_id'])) {
+                $sale = Vente::query()
+                    ->where('employe_id', $user->id_u)
+                    ->where('statut', 'draft')
+                    ->lockForUpdate()
+                    ->find($data['vente_id']);
+
+                if (!$sale) {
+                    abort(404, 'Brouillon de vente introuvable.');
+                }
+
+                if ((string) $sale->client_id !== ($data['client_id'] === 'walkin' ? '' : $data['client_id'])) {
+                    abort(422, 'Le client de cette facture ne peut pas être modifié.');
+                }
+
+                $duplicate = DB::table('detail_ventes')
+                    ->where('vente_id', $sale->id)
+                    ->where('produit_id', $product->id_produit)
+                    ->where('est_offert', false)
                     ->exists();
 
-                if ($articleExiste) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Cette boisson est déjà présente dans le panier. Veuillez supprimer la ligne existante pour modifier sa quantité.'
-                    ], 422); // Code 422 : Erreur de validation
+                if ($duplicate) {
+                    throw ValidationException::withMessages([
+                        'produit_id' => 'Cette référence est déjà dans le panier. Supprimez sa ligne pour modifier la quantité.',
+                    ]);
                 }
-            }
-            // 💡 Si c'est le 1er produit, on crée l'en-tête de facture reliée à cet employé
-            if (empty($venteId)) {
-                $codeFacture = 'FACT-' . date('Ymd') . '-' . strtoupper(Str::random(4));
-                $clientId = $request->input('client_id') === 'walkin' ? null : $request->input('client_id');
-
-                $venteId = DB::table('ventes')->insertGetId([
+            } else {
+                $clientId = $data['client_id'] === 'walkin' ? null : $data['client_id'];
+                $saleId = DB::table('ventes')->insertGetId([
                     'client_id' => $clientId,
-                    'employe_id' => $employeId, // 💡 Injection de la colonne
-                    'code_facture' => $codeFacture,
+                    'employe_id' => $user->id_u,
+                    'code_facture' => 'FACT-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
                     'montant_total' => 0,
                     'mode_paiement' => 'Espece',
                     'statut' => 'draft',
                     'created_at' => now(),
-                    'updated_at' => now()
+                    'updated_at' => now(),
+                ]);
+                $sale = Vente::findOrFail($saleId);
+            }
+
+            $quantityAlreadyInSale = (float) DB::table('detail_ventes')
+                ->where('vente_id', $sale->id)
+                ->where('produit_id', $product->id_produit)
+                ->where('est_offert', false)
+                ->sum('quantite');
+
+            if ($quantityAlreadyInSale + $quantite > (float) $product->quantite_p) {
+                throw ValidationException::withMessages([
+                    'quantite' => "Stock insuffisant pour {$product->nom_p}.",
                 ]);
             }
 
-            // Insertion du produit dans le sous-détail
-            $detailId = DB::table('detail_ventes')->insertGetId([
-                'vente_id' => $venteId,
-                'produit_id' => $produitId,
+            DB::table('detail_ventes')->insert([
+                'vente_id' => $sale->id,
+                'produit_id' => $product->id_produit,
                 'quantite' => $quantite,
-                'prix_unitaire' => $prixUnitaire,
-                'total_ligne' => $totalLigne,
+                'prix_unitaire' => $product->prix_p,
+                'total_ligne' => $quantite * (float) $product->prix_p,
+                'est_offert' => false,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
-            // Recalcul de la facture générale
-            $totalFacture = DB::table('detail_ventes')->where('vente_id', $venteId)->sum('total_ligne');
-            DB::table('ventes')->where('id', $venteId)->update(['montant_total' => $totalFacture]);
-
-            DB::commit();
+            $promotionService->syncGiftLines($sale, (int) $user->depot_id);
+            $sale->load('detailVentes.produit');
 
             return response()->json([
                 'success' => true,
-                'vente_id' => $venteId,
-                'detail_id' => $detailId,
-                'nom_produit' => strtoupper($produit->nom_p),
-                'total_ligne' => $totalLigne
-            ], 200);
+                'vente_id' => $sale->id,
+                'lines' => $this->formatSaleLines($sale),
+                'message' => 'Article ajouté au panier.',
+            ]);
+        });
+    }
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+    public function addLine(Request $request, PromotionService $promotionService)
+    {
+        return $this->ajouterArticle($request, $promotionService);
+    }
+
+    public function getCurrent()
+    {
+        $sale = Vente::query()
+            ->with('detailVentes.produit')
+            ->where('employe_id', Auth::user()->id_u)
+            ->where('statut', 'draft')
+            ->latest()
+            ->first();
+
+        return response()->json([
+            'vente_id' => $sale?->id,
+            'montant_total' => $sale?->montant_total ?? 0,
+            'lines' => $sale ? $this->formatSaleLines($sale) : [],
+        ]);
     }
 
     /**
      * Supprime un article du panier
      */
-    public function supprimerArticle($id)
+    public function supprimerArticle($id, PromotionService $promotionService)
     {
-        DB::beginTransaction();
-        try {
-            $detail = DB::table('detail_ventes')->where('id', $id)->first();
-            if ($detail) {
-                $venteId = $detail->vente_id;
-                DB::table('detail_ventes')->where('id', $id)->delete();
+        $user = Auth::user();
 
-                $reste = DB::table('detail_ventes')->where('vente_id', $venteId)->count();
-                if ($reste === 0) {
-                    DB::table('ventes')->where('id', $venteId)->delete(); // Supprime l'en-tête si vide
-                } else {
-                    $total = DB::table('detail_ventes')->where('vente_id', $venteId)->sum('total_ligne');
-                    DB::table('ventes')->where('id', $venteId)->update(['montant_total' => $total]);
-                }
+        return DB::transaction(function () use ($id, $user, $promotionService) {
+            $detail = DB::table('detail_ventes')->lockForUpdate()->where('id', $id)->first();
+
+            if (!$detail || $detail->est_offert) {
+                abort(404, 'Ligne de vente introuvable.');
             }
-            DB::commit();
-            return response()->json(['success' => true], 200);
-        } catch (\Exception $e) { DB::rollBack(); return response()->json(['success' => false], 500); }
+
+            $sale = Vente::query()
+                ->where('id', $detail->vente_id)
+                ->where('employe_id', $user->id_u)
+                ->where('statut', 'draft')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            DB::table('detail_ventes')->where('id', $id)->delete();
+
+            $remainingLines = DB::table('detail_ventes')
+                ->where('vente_id', $sale->id)
+                ->where('est_offert', false)
+                ->count();
+
+            if ($remainingLines === 0) {
+                DB::table('ventes')->where('id', $sale->id)->delete();
+
+                return response()->json([
+                    'success' => true,
+                    'vente_id' => null,
+                    'lines' => [],
+                ]);
+            }
+
+            $promotionService->syncGiftLines($sale, (int) $user->depot_id, false);
+            $sale->load('detailVentes.produit');
+
+            return response()->json([
+                'success' => true,
+                'vente_id' => $sale->id,
+                'lines' => $this->formatSaleLines($sale),
+            ]);
+        });
+    }
+
+    private function formatSaleLines(Vente $sale): array
+    {
+        return $sale->detailVentes->map(fn (DetailVente $detail) => [
+            'id' => $detail->id,
+            'produit_id' => $detail->produit_id,
+            'nom_produit' => strtoupper($detail->produit->nom_p),
+            'format' => $detail->produit->format_p,
+            'quantite' => (float) $detail->quantite,
+            'prix_unitaire' => (float) $detail->prix_unitaire,
+            'total_ligne' => (float) $detail->total_ligne,
+            'est_offert' => (bool) $detail->est_offert,
+        ])->all();
     }
 
     /**
      * Encaissement final, validation comptable et ajustement des stocks physiques
      */
-    public function cloturerVente(Request $request)
+    public function cloturerVente(Request $request, PromotionService $promotionService)
     {
         $request->validate([
             'vente_id'       => 'required|integer',
-            'mode_paiement'  => 'required',
+            'mode_paiement'  => 'required|in:Espece,OM-MOMO,Epargne',
             'statut'         => 'required|in:payer,attente',
             'montant_verse'  => 'required|numeric|min:0', 
             'rendre_monnaie' => 'nullable|integer|in:0,1'   
@@ -405,46 +521,76 @@ class Workstocksell extends Controller
         $cashPhysique          = (float)$request->input('montant_verse');
         $rendreMonnaiePhysique = $request->input('rendre_monnaie') == 1;
 
-        $vente = Vente::find($venteId);
-        if (!$vente) {
-            return response()->json(['success' => false, 'message' => 'Facture introuvable.'], 404);
-        }
-
         DB::beginTransaction();
         try {
-            // STOCK DES BOISSONS
-            foreach ($grid = $vente->detailVentes as $detail) {
-                $qte = (float)$detail->quantite;
-                
-                // Validation PHP des décimales autorisées
+            $vente = Vente::query()
+                ->where('employe_id', Auth::user()->id_u)
+                ->where('statut', 'draft')
+                ->lockForUpdate()
+                ->find($venteId);
+
+            if (!$vente) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Facture introuvable ou déjà clôturée.'], 404);
+            }
+
+            if ($request->input('mode_paiement') === 'Epargne' && is_null($vente->client_id)) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Le paiement par épargne exige un client identifié.'], 422);
+            }
+
+            $promotionService->syncGiftLines($vente, (int) Auth::user()->depot_id);
+            $vente->load('detailVentes.produit');
+
+            $stockLines = DB::table('detail_ventes')
+                ->where('vente_id', $vente->id)
+                ->select('produit_id', DB::raw('SUM(quantite) as quantite'))
+                ->groupBy('produit_id')
+                ->get();
+
+            if ($stockLines->isEmpty()) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Le panier est vide.'], 422);
+            }
+
+            foreach ($stockLines as $stockLine) {
+                $qte = (float) $stockLine->quantite;
                 $partieDecimale = round($qte - floor($qte), 2);
                 if (!in_array($partieDecimale, [0.00, 0.25, 0.50, 0.75])) {
+                    DB::rollBack();
                     return response()->json(['success' => false, 'message' => "Fraction de casier interdite détectée."], 422);
                 }
 
-                $produit = $detail->produit;
-                if ($produit->quantite_p < $detail->quantite) {
-                    return response()->json(['success' => false, 'message' => "Stock insuffisant pour {$produit->nom_p}."], 422);
+                $produit = Produit::query()
+                    ->where('depot_id', Auth::user()->depot_id)
+                    ->lockForUpdate()
+                    ->find($stockLine->produit_id);
+
+                if (!$produit || $produit->quantite_p < $qte) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Stock insuffisant ou référence hors du dépôt pour finaliser la facture.',
+                    ], 422);
                 }
-                $produit->quantite_p -= $detail->quantite;
+
+                $produit->quantite_p -= $qte;
                 $produit->save();
-                // 💡 CAPTEUR INDUSTRIEL : Vérification automatique du seuil d'alerte après déduction
-                $produitApresVente = DB::table('produits')->where('id_produit', $detail->produit_id)->first();
+                $produitApresVente = DB::table('produits')
+                    ->where('id_produit', $stockLine->produit_id)
+                    ->first();
 
                 if ($produitApresVente && $produitApresVente->quantite_p <= $produitApresVente->seuil) {
-                    
-                    // On vérifie si une alerte non lue existe déjà pour éviter de dupliquer la même notification
                     $alerteExiste = DB::table('alertes_stocks')
                         ->where('produit_id', $produitApresVente->id_produit)
-                        ->where('depot_id', $vente->depot_id ?? auth()->user()->depot_id)
+                        ->where('depot_id', Auth::user()->depot_id)
                         ->where('statut_lecture', 'non_lu')
                         ->exists();
 
                     if (!$alerteExiste) {
-                        // Insertion chirurgicale de la notification d'alerte critique
                         DB::table('alertes_stocks')->insert([
                             'produit_id'        => $produitApresVente->id_produit,
-                            'depot_id'          => $vente->depot_id ?? auth()->user()->depot_id,
+                            'depot_id'          => Auth::user()->depot_id,
                             'quantite_restante' => $produitApresVente->quantite_p,
                             'seuil_limite'      => $produitApresVente->seuil,
                             'created_at'        => now(),
@@ -454,20 +600,9 @@ class Workstocksell extends Controller
                 }
             }
 
-            // BLOC COMMANDE EN ATTENTE
+            // Une facture en attente conserve uniquement l’acompte réellement encaissé.
             if ($statutFacture === 'attente') {
-                $montantFacture = (float)$vente->montant_total;
-                $virtuelPreleveEpargne = 0;
-
-                if (!is_null($vente->client_id)) {
-                    $client = User::find($vente->client_id);
-                    if ($cashPhysique < $montantFacture && $client->solde_u > 0) {
-                        $manquant = $montantFacture - $cashPhysique;
-                        $virtuelPreleveEpargne = min($manquant, $client->solde_u); // 
-                    }
-                }
-
-                $vente->montant_verse = $cashPhysique + $virtuelPreleveEpargne; 
+                $vente->montant_verse = min($cashPhysique, (float) $vente->montant_total);
                 $vente->mode_paiement = $request->input('mode_paiement');
                 $vente->statut         = 'attente';
                 $vente->save();
@@ -479,9 +614,10 @@ class Workstocksell extends Controller
                 $cashNetConserve = $cashPhysique;
 
                 if (!is_null($vente->client_id)) {
-                    $client = User::find($vente->client_id);
+                    $client = User::query()->lockForUpdate()->findOrFail($vente->client_id);
 
                     if ($client->solde_u < 0 && $cashPhysique < ($montantFacture + abs($client->solde_u))) {
+                        DB::rollBack();
                         return response()->json(['success' => false, 'message' => 'Le client doit apurer sa dette active.'], 422);
                     }
 
@@ -542,6 +678,9 @@ class Workstocksell extends Controller
                 'vente_id' => $vente->id 
             ], 200);
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Erreur critique : ' . $e->getMessage()], 500);
@@ -802,32 +941,43 @@ public function traiterCommandeEnAttente(Request $request, $id_facture)
     $action = $request->input('action');
     $complementCash = (float)$request->input('montant_verse', 0);
 
-    // 🔒 SÉCURITÉ : On cible uniquement les bons déjà présents au comptoir ('attente')
-    $vente = Vente::with('detailVentes.produit')->find($id_facture);
-    if (!$vente || $vente->statut !== 'attente') {
-        return response()->json(['success' => false, 'message' => 'Cette facture est introuvable ou a déjà été clôturée.'], 404);
-    }
-
     DB::beginTransaction();
     try {
+        $depotId = (int) Auth::user()->depot_id;
+        $vente = Vente::query()
+            ->where('statut', 'attente')
+            ->where(function ($query) use ($depotId) {
+                $query->whereHas('client', fn ($client) => $client->where('depot_id', $depotId))
+                    ->orWhereHas('employe', fn ($employee) => $employee->where('depot_id', $depotId));
+            })
+            ->lockForUpdate()
+            ->find($id_facture);
+
+        if (!$vente) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Cette facture est introuvable, hors dépôt ou déjà clôturée.'], 404);
+        }
+
+        $vente->load('detailVentes.produit');
 
         // ====================================================================
         // ❌ CAS A : L'ANULATION FINALE AU COMPTOIR (RETOUR EN RAYON)
         // ====================================================================
         if ($action === 'refuser') {
-            // Remise physique des casiers annulés en stock rayon
-            foreach ($vente->detailVentes as $detail) {
-                $produit = $detail->produit;
-                if ($produit) {
-                    $produit->quantite_p += $detail->quantite;
-                    $produit->save();
-                }
+            $stockLines = $vente->detailVentes->groupBy('produit_id');
+            foreach ($stockLines as $productId => $details) {
+                $product = Produit::query()
+                    ->where('depot_id', $depotId)
+                    ->lockForUpdate()
+                    ->findOrFail($productId);
+                $product->quantite_p += $details->sum('quantite');
+                $product->save();
             }
 
             // Gestion de la restitution comptable de l'avance (Inaltérée)
             $avanceLaissee = (float)$vente->montant_verse; 
             if ($avanceLaissee > 0 && !is_null($vente->client_id)) {
-                $client = User::find($vente->client_id);
+                $client = User::query()->lockForUpdate()->findOrFail($vente->client_id);
                 $soldeAvant = $client->solde_u;
                 $nouveauSolde = $soldeAvant + $avanceLaissee;
 
@@ -863,16 +1013,15 @@ public function traiterCommandeEnAttente(Request $request, $id_facture)
         if ($action === 'valider') {
             $montantFacture = (float)$vente->montant_total;
             $totalCashPhysiqueRecu = (float)$complementCash;
-            $montantFacture = (float)$vente->montant_total;
             $avanceAnterieure = (float)$vente->montant_verse;
-            $resteApyerFacture = $montantFacture - $avanceAnterieure;
+            $resteApyerFacture = max(0, $montantFacture - $avanceAnterieure);
             if (!is_null($vente->client_id)) {
-                $client = User::find($vente->client_id);
+                $client = User::query()->lockForUpdate()->findOrFail($vente->client_id);
                 
 
                 // 🧮 CALCUL PRÉVISIONNEL DU SOLDE FINAL APPRÈS ENCAISSEMENT
                 // Formule : Solde actuel + Nouveau cash apporté - Reste à payer de la facture
-                $resteApyerFacture = $montantFacture - $avanceAnterieure;
+                $resteApyerFacture = max(0, $montantFacture - $avanceAnterieure);
                 $soldeFinalPrevisionnel = $client->solde_u + $totalCashPhysiqueRecu - $resteApyerFacture;
 
                 // 🚨 ====================================================================
@@ -895,6 +1044,7 @@ public function traiterCommandeEnAttente(Request $request, $id_facture)
                         // Calcul mathématique du montant minimal que le client doit donner pour redescendre à -10 000 F
                         $montantMinimumAverser = abs($client->solde_u) + $resteApyerFacture - 10000;
                         
+                        DB::rollBack();
                         return response()->json([
                             'success' => false,
                             'message' => "🔒 Clôture refusée ! Ce client possède déjà une dette. Le cash reçu ne couvre pas la facture du jour (" . number_format($resteApyerFacture, 0, ',', ' ') . " F) et la dette finale grimperait à " . number_format($dettePrevisionnelleTotale, 0, ',', ' ') . " F (Plafond autorisé : 10 000 F). Veuillez réclamer au minimum : " . number_format($montantMinimumAverser, 0, ',', ' ') . " FCFA."
@@ -945,6 +1095,7 @@ public function traiterCommandeEnAttente(Request $request, $id_facture)
                 // 1. Verrou strict : L'argent donné doit couvrir au moins le reste à payer
                 if ($totalCashPhysiqueRecu < $resteApyerFacture) {
                     $manquant = $resteApyerFacture - $totalCashPhysiqueRecu;
+                    DB::rollBack();
                     return response()->json([
                         'success' => false,
                         'message' => "⛔ Opération refusée ! Un client passager n'a pas droit au crédit. Le cash reçu (" . number_format($totalCashPhysiqueRecu, 0, ',', ' ') . " F) est inférieur au reste à payer (" . number_format($resteApyerFacture, 0, ',', ' ') . " F). Veuillez réclamer le complément de : " . number_format($manquant, 0, ',', ' ') . " FCFA."
@@ -960,30 +1111,17 @@ public function traiterCommandeEnAttente(Request $request, $id_facture)
                 // Pour un client passager, la facture passe à 100% payée
                 $vente->montant_verse = $montantFacture;
 
-                $vente->statut = 'livrer'; // Le client passager n'a pas de compte, donc on ne peut pas créer de dette
+                $vente->statut = 'payer';
                 $vente->save();
 
                 DB::commit();
                 return response()->json([
                     'success' => true, 
-                    'message' => "Facture soldée avec succès. Monnaie à rendre : " . number_format($monnaieArendre, 0, ',', ' ') . " F."
+                    'message' => "Facture soldée et prête à être remise au client. Monnaie à rendre : " . number_format($monnaieArendre, 0, ',', ' ') . " F."
                 ], 200);
             }
 
-            // Vérifie si la commande contient au moins un produit dont le format est "casier 12" ou "casier 24"
-            $contientCasiers = $vente->detailVentes->contains(function ($detail) {
-                $format = strtolower($detail->produit->format_p);
-                return $format === 'casier 12' || $format === 'casier 24';
-            });
-
-            // Si aucun casier n’est présent → statut passe directement à "livrer"
-            if (!$contientCasiers) {
-                $vente->statut = 'livrer';
-            } else {
-                // Sinon, on laisse le statut en "valider" pour attendre le retour des casiers
-                $vente->statut = 'valider';
-            }
-
+            $vente->statut = 'payer';
             $vente->save();
 
             // 📱 FLUX 1 : Émission immédiate du reçu numérique sur le smartphone du client

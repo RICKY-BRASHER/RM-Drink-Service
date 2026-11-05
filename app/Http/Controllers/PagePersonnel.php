@@ -17,7 +17,7 @@ class PagePersonnel extends Controller
         $user = Auth::user();
         $depotId = $user->depot_id;
 
-        $today = Carbon::today();
+        $today = Carbon::today(); 
         $currentMonth = Carbon::now()->month;
         $currentYear = Carbon::now()->year;
 
@@ -30,7 +30,7 @@ class PagePersonnel extends Controller
             ->join('users', 'recharges.client_id', '=', 'users.id_u') // Jointure sur id_u
             ->where('users.depot_id', $depotId)
             ->whereDate('recharges.created_at', $today)
-            ->whereIn('recharges.type_mouvement', ['achat_direct', 'creation_dette'])
+            
             ->sum('recharges.montant_r');
 
         // 2. Nombre de Factures en Dette créées aujourd'hui
@@ -55,7 +55,7 @@ class PagePersonnel extends Controller
             ->join('users', 'ventes.client_id', '=', 'users.id_u') // Jointure sur id_u
             ->where('users.depot_id', $depotId)
             ->whereDate('ventes.created_at', $today)
-            ->whereIn('ventes.statut', ['attente', 'payer','livrer'])
+            ->whereIn('ventes.statut', [ 'payer','livrer'])
             ->sum('detail_ventes.quantite');
 
         // ----------------------------------------------------------------

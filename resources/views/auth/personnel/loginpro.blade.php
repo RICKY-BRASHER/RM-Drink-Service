@@ -134,6 +134,18 @@
 <!-- Effets visuels flous en arrière-plan -->
 <div class="bg-blur-1"></div>
 <div class="bg-blur-2"></div>
+@if(session('toast_error'))
+<div class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 9999;">
+    <div class="toast align-items-center text-white bg-danger border-0 shadow-lg show" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fw-bold">
+                {{ session('toast_error') }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fermer"></button>
+        </div>
+    </div>
+</div>
+@endif
 
 <div class="container d-flex justify-content-center align-items-center">
     <div class="admin-box">
@@ -272,6 +284,13 @@
 
     });
 
+    document.addEventListener('DOMContentLoaded', function () {
+        var toastEl = document.querySelector('.toast');
+        if (toastEl) {
+            var toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+    });
 </script>
 
 </body>

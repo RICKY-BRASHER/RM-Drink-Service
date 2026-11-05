@@ -45,12 +45,6 @@ Route::middleware(['is_admin'])->group(function () {
         Route::get('/Distrib237/caissier/livraisons', [Livraison::class, 'indexLivraisons'])->name('livraison');
         Route::post('/Distrib237/caissier/livraisons/valider/{id}', [Livraison::class, 'validerLivraisonEtRetourCasiers']);
         Route::post('/Distrib237/caissier/clients/retour-libre', [Livraison::class, 'enregistrerRetourLibreCasiers']);
-
-
-        
-
-
-
     });
 
     Route::middleware(['admin_uniq'])->group(function () {
@@ -83,11 +77,11 @@ Route::middleware(['is_admin'])->group(function () {
     Route::get('/gestion/client', [PagePersonnel::class, 'showpageclient'])->name('client');
     Route::get('/gestion/historique', [PagePersonnel::class, 'showpagehistorique'])->name('historique');
     Route::get('/gestion/factures/voir-archive/{id}', [PagePersonnel::class, 'afficherFactureArchivee']);
-    Route::get('/gestion/stock', [PagePersonnel::class, 'showpagestock'])->name('stock'); 
+    Route::get('/gestion/stock', [PagePersonnel::class, 'showpagestock'])->name('stock');
     Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
 
 
-    
+
 
 
 });
@@ -95,7 +89,7 @@ Route::middleware(['is_admin'])->group(function () {
 // 2. ROUTES SÉCURISÉES DE L'ESPACE CLIENT
 /*Route::middleware(['is_client'])->group(function () {
     // Routes réservées aux clients
-    
+
     Route::get('/Distrib237/client/transactions', [ClientShow::class,'showtransactions'])->name('client.transactions');
     Route::get('/Distrib237/client/commande', [ClientShow::class,'showcommande'])->name('client.commande');
     Route::get('/Distrib237/client/accueil', [ClientShow::class,'showaccueil'])->name('client.accueil');
@@ -114,14 +108,14 @@ Route::middleware(['is_admin'])->group(function () {
 
 // ROUTES PUBLIQUES : ACCESSIBLES UNIQUEMENT AUX PERSONNES NON CONNECTÉES
 Route::middleware(['guest_custom'])->group(function () {
-    
+
     Route::get('/', [Pagecontrol::class, 'showLandingPage'])->name('LandingPage');
     //Route::get('connect_customer', [Pagecontrol::class, 'showLoginClient'])->name('login.client');
     Route::get('login_pro', [Pagecontrol::class, 'showLoginForm'])->name('login.pro');
     //Route::post('register_client', [Authentification::class, 'register_client'])->name('register.client');
     //Route::post('login_client', [Authentification::class, 'login_client'])->name('login.client.submit');
     Route::post('login_pro', [Authentification::class, 'login_pro'])->name('login.pro.submit');
-    
+
 });
 // Route d'extinction du bloc des messages
 /*Route::post('/Distrib237/notification/marquer-lue/{id}', function($id) {

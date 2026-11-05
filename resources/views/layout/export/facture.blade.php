@@ -75,8 +75,20 @@
             @foreach($vente->detailVentes as $detail)
                 <tr>
                     <td style="padding: 4px 0; text-transform: uppercase;">
-                        <strong>{{ $detail->produit->nom_p }}</strong><br>
-                        <small>{{ $detail->quantite }} x {{ number_format($detail->prix_unitaire, 0, ',', ' ') }} F [{{ $detail->produit->format_p }}]</small>
+                        <strong>{{ $detail->produit->nom_p }}</strong>
+                        @if($detail->est_offert)
+                            <strong style="color: #008000;"> — OFFERT</strong>
+                        @endif
+                        <br>
+                        <small>
+                            {{ $detail->quantite }} x
+                            @if($detail->est_offert)
+                                OFFERT
+                            @else
+                                {{ number_format($detail->prix_unitaire, 0, ',', ' ') }} F
+                            @endif
+                            [{{ $detail->produit->format_p }}]
+                        </small>
                     </td>
                     <td class="text-right" style="vertical-align: bottom; font-weight: bold;">
                         {{ number_format($detail->total_ligne, 0, ',', ' ') }} F

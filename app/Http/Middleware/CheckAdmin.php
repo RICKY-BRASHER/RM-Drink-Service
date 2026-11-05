@@ -21,11 +21,14 @@ class CheckAdmin
             return redirect()->route('login.pro')->with('error', 'Veuillez vous connecter pour accéder à l\'administration.');
         }
 
-        // 2. S'il est connecté mais n'est pas ADMIN ou EMPLOYE de type PERSONNEL, on le déconnecte et on le redirige vers la page de connexion
-        if (Auth::user()->role_u !== 'admin' && Auth::user()->role_u !== 'employe' && Auth::user()->type_u !== 'personnel') {
-            Auth::logout(); // On le déconnecte par sécurité
-            return redirect()->route('login.pro')->with('error', 'Accès refusé. Cette zone est réservée à la direction. Vous venez detre deconnecter');
+        $user = Auth::user();
+        $isAdministrator = $user->role_u === 'admin';
+        $isPersonnel = $user->role_u === 'employe' && $user->type_u === 'personnel';
+
+        if (!$isAdministrator && !$isPersonnel) {
+            abort(403, 'Accès réservé à la direction et au personnel autorisé.');
         }
+
         return $next($request);
     }
 }

@@ -21,8 +21,7 @@ class AdminUnique
 
         // 2. Vérification stricte du rôle (Cahier des charges)
         if (Auth::user()->role_u !== 'admin') {
-            Auth::logout();
-            return redirect()->route('login.pro')->with('error', 'Accès refusé. Réservé a la Direction.');
+            abort(403, 'Accès réservé à la direction.');
         }
         return $next($request);
     }

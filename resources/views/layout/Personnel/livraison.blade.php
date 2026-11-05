@@ -123,8 +123,7 @@
                                 <!-- 🚨 CELLULE TRICOLORE INDÉPENDANTE : S'ADAPTE CHIRURGICALEMENT AU MIXTE SANS CONFLIT -->
                                 <td>
                                     <div class="p-2 bg-light border rounded-3 d-inline-block font-monospace" style="font-size: 0.8rem;">
-                                        {{-- 💡 L'écriture {!! !!} permet à Laravel d'interpréter les balises span de couleurs générées par MySQL --}}
-                                        {!! $h->detail_restant_text !!}
+                                        {{ $h->detail_restant_text }}
                                     </div>
                                 </td>
 
@@ -154,6 +153,80 @@
 
 </div>
 
+<div class="card border-0 shadow-sm rounded-4 mt-4">
+    <div class="card-header bg-white border-0 pt-4 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h6 class="fw-bold text-secondary m-0"><i class="bi bi-arrow-return-left text-success me-2"></i>Retours libres récents</h6>
+            <small class="text-muted">Emballages déposés sans facture liée, enregistrés dans ce dépôt.</small>
+        </div>
+        <button type="button" class="btn btn-success rounded-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalFreeContainerReturn">
+            <i class="bi bi-plus-circle me-1"></i> Enregistrer un retour
+        </button>
+    </div>
+    <div class="card-body px-4 pb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light small text-muted">
+                    <tr>
+                        <th>Date</th>
+                        <th>Client</th>
+                        <th>Fournisseur</th>
+                        <th class="text-end">Quantité reçue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($retoursLibres as $retour)
+                        <tr>
+                            <td class="font-monospace small">{{ \Carbon\Carbon::parse($retour->created_at)->format('d/m/Y H:i') }}</td>
+                            <td>{{ $retour->nom_client ?? 'Client comptoir' }}</td>
+                            <td>{{ $retour->nom_fournisseur }}</td>
+                            <td class="text-end fw-bold">{{ $retour->quantite_rendue }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="text-center text-muted py-4">Aucun retour libre récent.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalFreeContainerReturn" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-success text-white rounded-top-4">
+                <h6 class="fw-bold m-0"><i class="bi bi-arrow-return-left me-2"></i>Retour de casiers sans facture</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <form id="formFreeContainerReturn">
+                <div class="modal-body p-4">
+                    <label class="form-label fw-semibold" for="freeReturnClient">Client (facultatif)</label>
+                    <select class="form-select mb-3" id="freeReturnClient" name="client_id">
+                        <option value="">Client comptoir / non identifié</option>
+                        @foreach($clients as $client)
+                            <option value="{{ $client->id_u }}">{{ $client->nom_u }}</option>
+                        @endforeach
+                    </select>
+
+                    @foreach($fournisseurs as $fourn)
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary text-uppercase mb-1">
+                                Casiers {{ $fourn->nom_fournisseur }}
+                            </label>
+                            <input type="number" name="rendus[{{ $fourn->id_fournisseur }}]" class="form-control text-center fw-bold" value="0" min="0" step="1" required>
+                        </div>
+                    @endforeach
+                    <div class="small text-muted">Saisissez le nombre reçu pour chaque fournisseur. Au moins un retour doit être positif.</div>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success fw-bold" id="btnSubmitFreeReturn">Enregistrer le retour</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- 📦 MODAL UNIQUE DE COMPTAGE DYNAMIQUE DES CONSIGNES -->
 <div class="modal fade" id="modalProcessDeliveryAndVides" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -177,7 +250,7 @@
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light fw-bold font-monospace text-muted">cs</span>
                                 <!-- Le name sous forme de tableau name="rendus[id_fournisseur]" pour peupler directement le contrôleur -->
-                                <input type="number" name="rendus[{{ $fourn->id_fournisseur }}]" class="form-control text-center font-monospace fw-bold fs-5 py-1.5" value="0" min="0" required>
+                                <input type="number" name="rendus[{{ $fourn->id_fournisseur }}]" class="form-control text-center font-monospace fw-bold fs-5 py-1.5" value="0" min="0" step="1" required>
                             </div>
                         </div>
                     @endforeach
@@ -195,6 +268,39 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+
+    $('#formFreeContainerReturn').on('submit', function(event) {
+        event.preventDefault();
+
+        const button = $('#btnSubmitFreeReturn');
+        button.prop('disabled', true).text('Enregistrement...');
+
+        $.ajax({
+            url: '/Distrib237/caissier/clients/retour-libre',
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Retour enregistré',
+                    text: response.message,
+                    timer: 1400,
+                    showConfirmButton: false
+                }).then(function() {
+                    location.reload();
+                });
+            },
+            error: function(xhr) {
+                const errors = xhr.responseJSON?.errors;
+                const message = errors
+                    ? Object.values(errors).flat().join('\n')
+                    : (xhr.responseJSON?.message || 'Impossible d’enregistrer ce retour.');
+
+                Swal.fire('Retour non enregistré', message, 'error');
+                button.prop('disabled', false).text('Enregistrer le retour');
+            }
+        });
+    });
     
     // ====================================================================
     // 🚚 OUVERTURE DE LA MODAL ET INITIALISATION DU BON
@@ -237,14 +343,21 @@ $(document).ready(function() {
                     
                     $('#rowShipping_' + idVente).fadeOut(400, function() {
                         $(this).remove();
-                        alert("Succès : " + response.message);
-                        location.reload(); // Rechargement pour actualiser instantanément l'historique par lignes du bas
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Sortie enregistrée',
+                            text: response.message,
+                            timer: 1400,
+                            showConfirmButton: false
+                        }).then(function() {
+                            location.reload();
+                        });
                     });
                 }
             },
             error: function(xhr) {
                 btn.prop('disabled', false).html('<i class="bi bi-check2-all me-1"></i> Enregistrer la Sortie');
-                alert("Échec : " + (xhr.responseJSON?.message || "Erreur lors de la boucle logistique."));
+                Swal.fire('Sortie non enregistrée', xhr.responseJSON?.message || 'Erreur lors du traitement logistique.', 'error');
             }
         });
     });

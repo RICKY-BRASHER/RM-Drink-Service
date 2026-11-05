@@ -185,13 +185,20 @@
                             <tbody id="cartTableBody" class="border-top-0">
                                 @if($venteEnCours && $venteEnCours->detailVentes->count() > 0)
                                     @foreach($venteEnCours->detailVentes as $detail)
-                                        <tr id="cartRow_{{ $detail->id }}" class="cart-item-row" data-total="{{ $detail->total_ligne }}" data-produit="{{ $detail->produit_id }}">
-                                            <td class="ps-3"><strong class="text-dark">{{ strtoupper($detail->produit->nom_p) }}</strong></td>
+                                        <tr id="cartRow_{{ $detail->id }}" class="cart-item-row" data-total="{{ $detail->total_ligne }}" data-produit="{{ $detail->produit_id }}" data-est-offert="{{ $detail->est_offert ? '1' : '0' }}">
+                                            <td class="ps-3">
+                                                <strong class="text-dark">{{ strtoupper($detail->produit->nom_p) }}</strong>
+                                                @if($detail->est_offert)
+                                                    <span class="badge bg-success ms-1">OFFERT</span>
+                                                @endif
+                                            </td>
                                             <td class="text-center font-monospace fw-bold">{{ $detail->quantite }}</td>
                                             <td class="text-end font-monospace">{{ number_format($detail->prix_unitaire, 0, ',', ' ') }} F</td>
                                             <td class="text-end font-monospace fw-bold text-primary">{{ number_format($detail->total_ligne, 0, ',', ' ') }} F</td>
                                             <td class="text-center">
-                                                <button type="button" class="btn btn-sm btn-link border-danger remove-cart-item-btn" data-id="{{ $detail->id }}"><i class="bi bi-trash"></i></button>
+                                                @unless($detail->est_offert)
+                                                    <button type="button" class="btn btn-sm btn-link border-danger remove-cart-item-btn" data-id="{{ $detail->id }}"><i class="bi bi-trash"></i></button>
+                                                @endunless
                                             </td>
                                         </tr>
                                     @endforeach
@@ -252,6 +259,35 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+
+    function escapeCartText(value) {
+        return $('<div>').text(value == null ? '' : String(value)).html();
+    }
+
+    function renderCart(lines) {
+        if (!lines.length) {
+            $('#cartTableBody').html('<tr id="emptyCartRow"><td colspan="5" class="text-center py-5 text-muted small"><i class="bi bi-cart-x fs-2 d-block mb-2 opacity-50"></i> Aucun article inséré.</td></tr>');
+            return;
+        }
+
+        const rows = lines.map(function(line) {
+            const giftBadge = line.est_offert ? '<span class="badge bg-success ms-1">OFFERT</span>' : '';
+            const removeButton = line.est_offert
+                ? ''
+                : `<button type="button" class="btn btn-sm btn-link border-danger remove-cart-item-btn" data-id="${line.id}"><i class="bi bi-trash"></i></button>`;
+
+            return `
+                <tr id="cartRow_${line.id}" class="cart-item-row" data-total="${line.total_ligne}" data-produit="${line.produit_id}" data-est-offert="${line.est_offert ? '1' : '0'}">
+                    <td class="ps-3"><strong class="text-dark">${escapeCartText(line.nom_produit)}</strong> ${giftBadge}</td>
+                    <td class="text-center font-monospace fw-bold">${escapeCartText(line.quantite)}</td>
+                    <td class="text-end font-monospace">${Number(line.prix_unitaire).toLocaleString('fr-FR')} F</td>
+                    <td class="text-end font-monospace fw-bold text-primary">${Number(line.total_ligne).toLocaleString('fr-FR')} F</td>
+                    <td class="text-center">${removeButton}</td>
+                </tr>`;
+        });
+
+        $('#cartTableBody').html(rows.join(''));
+    }
     
     // ====================================================================
     // 🔍 1. PERSISTANCE DU BROUILLON AU RECHARGEMENT (DÉBLOCAGE SÉQUENTIEL)
@@ -270,7 +306,7 @@ $(document).ready(function() {
         var rowCount = 0;
 
         // Force la lecture par .attr() pour détruire le cache jQuery résiduel
-        $('.cart-item-row').each(function() {
+        $('.cart-item-row[data-est-offert="0"]').each(function() {
             totalInvoice += parseFloat($(this).attr('data-total')) || 0;
             rowCount++;
         });
@@ -574,7 +610,6 @@ $(document).ready(function() {
         var clientId = $('#choixclient').val() || $('#hidden_client_id').val();
         var produitId = $('#choixproduit').val();
         var qte = parseFloat($('#qte_v').val()) || 0; // 💡 On passe en parseFloat pour accepter les décimales
-        var prixU = $('#Prix_u').val().replace(/\s/g, '');
 
         if (!produitId || qte <= 0) return;
 
@@ -620,32 +655,24 @@ $(document).ready(function() {
                 vente_id: $('#vente_id_brouillon').val(),
                 client_id: clientId,
                 produit_id: produitId,
-                quantite: qte,
-                prix_unitaire: prixU
+                quantite: qte
             },
             success: function(response) {
                 if (response.success) {
-                    $('#emptyCartRow').remove();
                     $('#vente_id_brouillon').val(response.vente_id);
                     $('#hidden_client_id').val(clientId);
                     $('#choixclient').prop('disabled', true); // Verrouille le client
-
-                    $('#cartRow_' + response.detail_id).remove();
-                    var newRow = `
-                        <tr id="cartRow_${response.detail_id}" class="cart-item-row" data-total="${response.total_ligne}" data-produit="${produitId}">
-                            <td class="ps-3"><strong class="text-dark">${response.nom_produit}</strong></td>
-                            <td class="text-center font-monospace fw-bold">${qte}</td>
-                            <td class="text-end font-monospace">${parseInt(prixU).toLocaleString('fr-FR')} F</td>
-                            <td class="text-end font-monospace fw-bold text-primary">${parseInt(response.total_ligne).toLocaleString('fr-FR')} F</td>
-                            <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-link text-danger border-danger remove-cart-item-btn" data-id="${response.detail_id}"><i class="bi bi-trash"></i></button>
-                            </td>
-                        </tr>`;
-                        
-                    $('#cartTableBody').append(newRow);
+                    renderCart(response.lines);
                     recalculerTotalPanier();
                     $('#choixproduit').val('').trigger('change'); 
                 }
+            },
+            error: function(xhr) {
+                const errors = xhr.responseJSON?.errors;
+                const message = errors
+                    ? Object.values(errors).flat().join('\n')
+                    : (xhr.responseJSON?.message || 'Impossible d’ajouter cet article.');
+                Swal.fire('Vente non enregistrée', message, 'error');
             },
             complete: function() {
                 // Libère le bouton d'ajout à la fin du cycle réseau
@@ -659,28 +686,26 @@ $(document).ready(function() {
     // ==========================================
     $(document).on('click', '.remove-cart-item-btn', function() {
         var detailId = $(this).data('id');
-        var row = $(this).closest('tr');
-
         $.ajax({
             url: '/gestion/caisse/supprimer-article/' + detailId,
             type: 'DELETE',
             data: { _token: $('input[name="_token"]').val() },
             success: function(response) {
                 if (response.success) {
-                    row.remove(); // Destruction de la ligne
-                    
-                    if ($('.cart-item-row').length === 0) {
+                    $('#vente_id_brouillon').val(response.vente_id || '');
+                    renderCart(response.lines);
+
+                    if (!response.vente_id) {
                         $('#vente_id_brouillon').val('');
                         $('#hidden_client_id').val('');
                         $('#choixclient').prop('disabled', false).val('').trigger('change');
-                        $('#cartTableBody').html('<tr id="emptyCartRow"><td colspan="5" class="text-center py-5 text-muted small"><i class="bi bi-cart-x fs-2 d-block mb-2 opacity-50"></i> Aucun article inséré.</td></tr>');
                     }
                     
-                    // Force le recalcul asynchrone à blanc après 50ms
-                    setTimeout(function() {
-                        recalculerTotalPanier(); 
-                    }, 50);
+                    recalculerTotalPanier();
                 }
+            },
+            error: function(xhr) {
+                Swal.fire('Erreur', xhr.responseJSON?.message || 'Impossible de retirer cette ligne.', 'error');
             }
         });
     });
