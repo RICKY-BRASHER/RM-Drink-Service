@@ -524,7 +524,7 @@ produit.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     produit.form = produitForm
 /**
 * @see \App\Http\Controllers\Livraison::livraison
- * @see app/Http/Controllers/Livraison.php:24
+ * @see app/Http/Controllers/Livraison.php:15
  * @route '/Distrib237/caissier/livraisons'
  */
 export const livraison = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -539,7 +539,7 @@ livraison.definition = {
 
 /**
 * @see \App\Http\Controllers\Livraison::livraison
- * @see app/Http/Controllers/Livraison.php:24
+ * @see app/Http/Controllers/Livraison.php:15
  * @route '/Distrib237/caissier/livraisons'
  */
 livraison.url = (options?: RouteQueryOptions) => {
@@ -548,7 +548,7 @@ livraison.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Livraison::livraison
- * @see app/Http/Controllers/Livraison.php:24
+ * @see app/Http/Controllers/Livraison.php:15
  * @route '/Distrib237/caissier/livraisons'
  */
 livraison.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -557,7 +557,7 @@ livraison.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 /**
 * @see \App\Http\Controllers\Livraison::livraison
- * @see app/Http/Controllers/Livraison.php:24
+ * @see app/Http/Controllers/Livraison.php:15
  * @route '/Distrib237/caissier/livraisons'
  */
 livraison.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -567,7 +567,7 @@ livraison.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
     /**
 * @see \App\Http\Controllers\Livraison::livraison
- * @see app/Http/Controllers/Livraison.php:24
+ * @see app/Http/Controllers/Livraison.php:15
  * @route '/Distrib237/caissier/livraisons'
  */
     const livraisonForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -577,7 +577,7 @@ livraison.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
             /**
 * @see \App\Http\Controllers\Livraison::livraison
- * @see app/Http/Controllers/Livraison.php:24
+ * @see app/Http/Controllers/Livraison.php:15
  * @route '/Distrib237/caissier/livraisons'
  */
         livraisonForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -586,7 +586,7 @@ livraison.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
         })
             /**
 * @see \App\Http\Controllers\Livraison::livraison
- * @see app/Http/Controllers/Livraison.php:24
+ * @see app/Http/Controllers/Livraison.php:15
  * @route '/Distrib237/caissier/livraisons'
  */
         livraisonForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -1202,7 +1202,7 @@ deconnect.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     
     deconnect.form = deconnectForm
 /**
- * @see routes/web.php:134
+ * @see routes/web.php:128
  * @route '/action'
  */
 export const home = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -1216,7 +1216,7 @@ home.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
- * @see routes/web.php:134
+ * @see routes/web.php:128
  * @route '/action'
  */
 home.url = (options?: RouteQueryOptions) => {
@@ -1224,7 +1224,7 @@ home.url = (options?: RouteQueryOptions) => {
 }
 
 /**
- * @see routes/web.php:134
+ * @see routes/web.php:128
  * @route '/action'
  */
 home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -1232,7 +1232,7 @@ home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     method: 'get',
 })
 /**
- * @see routes/web.php:134
+ * @see routes/web.php:128
  * @route '/action'
  */
 home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -1241,7 +1241,7 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
     /**
- * @see routes/web.php:134
+ * @see routes/web.php:128
  * @route '/action'
  */
     const homeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -1250,7 +1250,7 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     })
 
             /**
- * @see routes/web.php:134
+ * @see routes/web.php:128
  * @route '/action'
  */
         homeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -1258,7 +1258,7 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
             method: 'get',
         })
             /**
- * @see routes/web.php:134
+ * @see routes/web.php:128
  * @route '/action'
  */
         homeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

@@ -2,6 +2,10 @@
    CHARTE GRAPHIQUE PROFESSIONNELLE : R~M DRINK MANAGER
    ========================================================================== */
 
+html {
+    font-size: 15px;
+}
+
 :root {
     --sidebar-bg: #111827;       /* Noir/Charbon profond de l'image */
     --sidebar-active: #ef4444;   /* Rouge vif d'activation */
@@ -14,6 +18,7 @@ body.erp-body {
     background-color: var(--bg-main);
     color: #334155;
     font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 0.95rem;
     min-height: 100vh;
     overflow-x: hidden;
 }
@@ -26,7 +31,7 @@ body.erp-body {
     background-color: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
-    z-index: 1060;
+    z-index: 1030;
     transition: all 0.3s ease;
 }
 .sidebar-brand {
@@ -180,7 +185,7 @@ body.erp-body {
 
 /* 3. CONTENEUR CONTENU */
 .erp-main {
-    padding: 30px;
+    padding: 32px;
     flex: 1;
 }
 
@@ -247,6 +252,19 @@ body.erp-body {
     .topbar-search {
         width: 180px;
     }
+    .erp-main {
+        padding: 24px;
+    }
+}
+
+@media (max-width: 575px) {
+    .erp-main {
+        padding: 16px;
+    }
+
+    #stockModal .modal-dialog {
+        width: calc(100% - 1rem);
+    }
 }
 
 .circle-progress-wrapper {
@@ -285,6 +303,21 @@ body.erp-body {
     border-color: #4f46e5 !important;
     box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12) !important;
 }
+
+body.erp-body .table > :not(caption) > * > * {
+    padding-block: 0.65rem;
+}
+
+#stockModal .modal-dialog {
+    width: calc(100% - 2rem);
+    max-width: 1080px;
+    margin-inline: auto;
+}
+
+#stockModal .modal-content {
+    max-height: calc(100vh - 2rem);
+}
+
 /* Personnalisation fine de la scrollbar pour vos tables de boissons */
 .scrollable-table-container::-webkit-scrollbar {
     width: 6px; /* Épaisseur fine */
