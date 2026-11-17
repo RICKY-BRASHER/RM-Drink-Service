@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/css/app.css', 
                 'resources/js/app.js',
                 'resources/css/home.css',
+                'resources/css/showcase.css',
                 'resources/css/depot.css'
             ],
             refresh: true,
